@@ -1,11 +1,13 @@
-# swissnex-urbandata-challenge
+[The Urban Data Challenge](https://github.com/swissnexSF/Urban-Data-Challenge)
+============================================================
 
-This repository provides you with public transportation data sets from Zurich, San Francisco and Geneva for the www.urbandatachallenge.org. 
+We can plot using [d3 and leaflet](http://bost.ocks.org/mike/leaflet/). 
+Also a handy reference is the [d3 book](https://github.com/alignedleft/d3-book).
 
-Throughout the repository you'll find the data organized by city. Each city folder contains the data sets and a more detailed description of the data. 
+Data is getting parsed using parse_data.ipynb (an ipython notebook).
 
-Explore the [Public Transportation](https://github.com/swissnexSF/Urban-Data-Challenge/tree/master/public-transportation) data sets for [Zurich](https://github.com/swissnexSF/Urban-Data-Challenge/tree/master/public-transportation/zurich), [Geneva](https://github.com/swissnexSF/Urban-Data-Challenge/tree/master/public-transportation/geneva), and [San Francisco](https://github.com/swissnexSF/Urban-Data-Challenge/tree/master/public-transportation/san-francisco). 
-We've also added [available weather data sets](https://github.com/swissnexSF/Urban-Data-Challenge/tree/master/weather) for the two Swiss cities. These data are *meant to complement the public transportation data sets*. You're free to use them in any way you like, as long as they add context to public transportation data. 
+Right now we are using a basic html server:
 
-## Additional Information
-You will come across a lot of terms when sifting through the data sets. To help you understand them, we put together a  [Glossary](https://github.com/swissnexSF/Urban-Data-Challenge/wiki/Glossary).
+    python -m SimpleHTTPServer 8080
+    
+[Stop map](http://localhost:8080/stop_map.html)
