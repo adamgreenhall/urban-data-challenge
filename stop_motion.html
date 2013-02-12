@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Stop motion demo</title>
+  <script type="text/javascript" src="d3.js"></script>
+  <style type="text/css">
+    #chart { 
+      height: 600px;
+      width: 600px;
+    }
+    circle {
+      fill: steelblue;
+      fill-opacity: 0.7;
+    }
+    circle:hover {fill: black;}
+  </style>
+</head>
+<body>
+  <div id="chart"></div>
+  
+  <script type="text/javascript">
+    var svg = d3.select('#chart').append("svg"),
+    g = svg.append("g");
+    
+    var data = [
+      {time: 0, x: 10},
+      {time: 2, x: 150},
+      {time: 5, x: 450},      
+      ];
+
+    var line = g.append('line')
+      .attr("x1", 10)
+      .attr("y1", 20)
+      .attr("x2", 450)
+      .attr("y2", 20)
+      .style("stroke", "rgb(6,120,155)");
+
+
+    var bus = g.append('circle')
+      .attr('r', 5)
+      .attr('cx', 10)
+      .attr('cy', 20)
+    
+    var pos = 0;
+    
+    setInterval(function(){
+        bus.transition(500).attr('cx', data[pos].x)
+        if (pos <= data.length - 2){
+          pos += 1;
+        } else { 
+          pos = 0;
+        }
+    }, 1000)
+    
+      
+    // var dots = g.selectAll("circle")
+    //   .data(stops).enter()
+    //   .append("circle")
+    //   .attr("r", 5)
+    //   .on("mouseover", function(d){
+    //     d3.select(this)
+    //       .attr('r', 10)
+    //       .attr("class", "hover")
+    //   })
+    //   .on("mouseout", function(d){
+    //     d3.select(this)
+    //       .attr('r', 5)
+    //       .attr("class", "")
+    //   })
+    
+    
+    
+  </script>
+
+</body>
+</html>
