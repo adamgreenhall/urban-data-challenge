@@ -16,14 +16,47 @@
       fill-opacity: 0.7;
     }
     circle:hover {fill: black;}
+    
+		#tooltip {
+			position: absolute;
+			width: 200px;
+			height: auto;
+			padding: 10px;
+			background-color: white;
+			-webkit-border-radius: 10px;
+			-moz-border-radius: 10px;
+			border-radius: 10px;
+			-webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+			-moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+			box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+			pointer-events: none;
+			z-index: 100;
+		}
+
+		#tooltip.hidden {
+			display: none;
+		}
+
+		#tooltip p {
+			margin: 0;
+			font-family: sans-serif;
+			font-size: 16px;
+			line-height: 20px;
+		}    
   </style>
 </head>
 <body>
+	<div id="tooltip" class="hidden">
+		<p>
+		  <span class="route-name" style="font-weight: bold"></span>
+		  <span class="stop-name"></span>
+		</p>
+	</div>  
   <div id="map"></div>
   
   <script type="text/javascript">
     var map = L.map('map', {
-        center: [37.76603099825176, -122.43186179720293],
+        center: [37.75853323855129, -122.43715028733901],
         zoom: 12
         }).addLayer(
           new L.tileLayer('http://{s}.tile.cloudmade.com/62541519723e4a6abd36d8a4bb4d6ac3/998/256/{z}/{x}/{y}.png', {
@@ -40,33 +73,54 @@
     }        
     
     var path = d3.geo.path().projection(projection);
-    
+    var tooltip = d3.select("#tooltip");
     
     d3.json("stops_sf.json", function(stops) {
       var dots = g.selectAll("circle")
         .data(stops).enter()
         .append("circle")
         .attr("r", 5)
-        .on("mouseover", function(d){
-          d3.select(this)
+        .on("mouseover", function(d) {
+
+          var dot = d3.select(this)
+          dot
             .attr('r', 10)
-            .attr("class", "hover")
-        })
-        .on("mouseout", function(d){
+            .classed("hover", true)
+
+					//Get this bar's x/y values, then augment for the tooltip
+					var xPosition = parseFloat(dot.attr("cx"));
+					var yPosition = parseFloat(dot.attr("cy"));
+
+					//Update the tooltip position and value
+
+					tooltip
+						.style("left", xPosition + 10 + "px")
+						.style("top", yPosition + 10 + "px");
+					tooltip.select(".route-name").text(d.ROUTE);
+					tooltip.select(".stop-name").text(d.STOP_NAME);
+
+					//Show the tooltip
+					tooltip.classed("hidden", false);
+			   })
+			   .on("mouseout", function() {
           d3.select(this)
             .attr('r', 5)
-            .attr("class", "")
-        })
+            .classed("hover", false)
+
+					//Hide the tooltip
+					tooltip.classed("hidden", true);
+			   })
+
       
       var bounds = [
         [ 
-          d3.min(stops, function(d){return d.lat}), 
-          d3.min(stops, function(d){return d.long})  ],
+          d3.min(stops, function(d){return d.LATITUDE}), 
+          d3.min(stops, function(d){return d.LONGITUDE})  ],
         [ 
-          d3.max(stops, function(d){return d.lat}), 
-          d3.max(stops, function(d){return d.long}) ]
+          d3.max(stops, function(d){return d.LATITUDE}), 
+          d3.max(stops, function(d){return d.LONGITUDE}) ]
         ];
-      console.log(bounds)
+
       map.on("viewreset", reset);
       reset();
       
@@ -81,8 +135,10 @@
             .style("margin-top", topRight[1] + "px");
         
         g.attr("transform", "translate(" + -bottomLeft[0] + "," + -topRight[1] + ")");
-        dots.attr("transform", function(d){
-          return "translate(" + projection([d.lat, d.long]) + ")"; })
+        dots.attr({
+          cx: function(d){return projection([d.LATITUDE, d.LONGITUDE])[0]},
+          cy: function(d){return projection([d.LATITUDE, d.LONGITUDE])[1]},
+          });
       }
 
     });
