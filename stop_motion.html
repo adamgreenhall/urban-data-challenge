@@ -8,11 +8,13 @@
       height: 600px;
       width: 600px;
     }
-    circle {
+    circle.bus {
       fill: steelblue;
+    }
+    circle.bus-stop {
+      fill: grey;
       fill-opacity: 0.7;
     }
-    circle:hover {fill: black;}
   </style>
 </head>
 <body>
@@ -28,6 +30,11 @@
       {time: 5, x: 450},      
       ];
 
+    // make a time scale to map all events to 5sec
+    var tScale = d3.scale.linear()
+      .domain(d3.extent(data, function(d){return d.time}))
+      .range([0, 2000])
+
     var line = g.append('line')
       .attr("x1", 10)
       .attr("y1", 20)
@@ -35,40 +42,64 @@
       .attr("y2", 20)
       .style("stroke", "rgb(6,120,155)");
 
+    var stops = g.selectAll('circle').
+      data(data).enter().append('circle')
+      .attr({
+        class: 'bus-stop',
+        r: 3,
+        cx: function(d){return d.x},
+        cy: 20,
+      });
 
-    var bus = g.append('circle')
-      .attr('r', 5)
-      .attr('cx', 10)
-      .attr('cy', 20)
+    var bus = g.append('circle').attr({
+      class: 'bus',
+      r: 5,
+      cx: data[0].x,
+      cy: 20
+    });
     
-    var pos = 0;
-    
-    setInterval(function(){
-        bus.transition(500).attr('cx', data[pos].x)
-        if (pos <= data.length - 2){
-          pos += 1;
-        } else { 
-          pos = 0;
-        }
-    }, 1000)
-    
+    var reset_to_beginning = function(reset_duration){
+      reset_duration = reset_duration || 2000;
+      bus.transition().duration(reset_duration * 4.0 / 5.0)
+        .style("fill-opacity", 0)
+        .each("end", 
+          // at the end of the fade out
+          function(){
+            // reset the position to t0
+            bus.attr('cx', data[0].x)
+            // fade the bus back in
+            bus.transition().duration(reset_duration / 5.0)
+              .style("fill-opacity", 1)
+            }
+          )
+      // re-trigger the first event after the 
+      // transition to starting state is complete
+      d3.timer(function(){
+          trigger_event(0); 
+          return true;
+        }, reset_duration)
       
-    // var dots = g.selectAll("circle")
-    //   .data(stops).enter()
-    //   .append("circle")
-    //   .attr("r", 5)
-    //   .on("mouseover", function(d){
-    //     d3.select(this)
-    //       .attr('r', 10)
-    //       .attr("class", "hover")
-    //   })
-    //   .on("mouseout", function(d){
-    //     d3.select(this)
-    //       .attr('r', 5)
-    //       .attr("class", "")
-    //   })
-    
-    
+    }
+
+    var trigger_event = function(event_number){
+      var event_length = tScale(data[event_number].time);
+      bus.transition()
+        .duration(event_length)
+        .attr('cx', data[event_number].x);
+
+      d3.timer(function(){
+        // trigger next after transition is done
+        if(event_number < data.length - 1){
+          trigger_event(event_number + 1);
+        } else {
+          reset_to_beginning();
+        }
+        return true;
+      }, event_length)
+    };
+
+    // start things moving
+    trigger_event(0);
     
   </script>
 
