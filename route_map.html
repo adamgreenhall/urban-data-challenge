@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>San Francisco MUNI Stops</title>
+  <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.5/leaflet.css" />
+  <script src="http://cdn.leafletjs.com/leaflet-0.5/leaflet.js"></script>
+  <script type="text/javascript" src="d3.js"></script>
+  <!-- <script src="stop_map.js"></script> -->
+  <style type="text/css">
+    #map { 
+      height: 600px;
+      width: 600px;
+    }
+    circle.bus-stop {
+      fill: steelblue;
+      fill-opacity: 0.7;
+    }
+    circle:hover {fill: black;}
+    path.bus-line {
+      stroke: black;
+      fill: none;
+    }
+    
+		#tooltip {
+			position: absolute;
+			width: 200px;
+			height: auto;
+			padding: 10px;
+			background-color: white;
+			-webkit-border-radius: 10px;
+			-moz-border-radius: 10px;
+			border-radius: 10px;
+			-webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+			-moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+			box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+			pointer-events: none;
+			z-index: 100;
+		}
+
+		#tooltip.hidden {
+			display: none;
+		}
+
+		#tooltip p {
+			margin: 0;
+			font-family: sans-serif;
+			font-size: 16px;
+			line-height: 20px;
+		}    
+  </style>
+</head>
+<body>
+	<div id="tooltip" class="hidden">
+		<p>
+		  <span class="route-name" style="font-weight: bold"></span>
+		  <span class="stop-name"></span>
+		</p>
+	</div>  
+  <div id="map"></div>
+  
+  <script type="text/javascript">
+    var map = L.map('map', {
+        center: [37.75853323855129, -122.43715028733901],
+        zoom: 12
+        }).addLayer(
+          new L.tileLayer('http://{s}.tile.cloudmade.com/62541519723e4a6abd36d8a4bb4d6ac3/998/256/{z}/{x}/{y}.png', {
+            attribution: '',
+            maxZoom: 16,
+          }));
+          
+    var svg = d3.select(map.getPanes().overlayPane).append("svg"),
+    g = svg.append("g").attr("class", "leaflet-zoom-hide");
+        
+    function projection(x) {
+      var point = map.latLngToLayerPoint(new L.LatLng(x[0], x[1]));
+      return [point.x, point.y];
+    }
+    function xPos(d) {
+      return projection([d.LATITUDE, d.LONGITUDE])[0];
+    }
+    function yPos(d) {
+      return projection([d.LATITUDE, d.LONGITUDE])[1];
+    }
+    var line_maker = d3.svg.line()
+      .x(function(d){return xPos(d); })
+      .y(function(d){return yPos(d); })
+    
+    var path = d3.geo.path().projection(projection);
+    var tooltip = d3.select("#tooltip");
+    
+    d3.json("routes_sf.json", function(routes_data) {
+      routes = g.selectAll('g.route')
+        .data(routes_data).enter()
+        .append('g')
+        .attr('class', function(d){return 'route route_no' + d.route})
+    
+      var route_lines = routes.selectAll('path.bus-line')
+        .data(routes_data).enter()
+          .append('path')
+          .attr({
+            class: 'bus-line',
+            d: function(d) { return line_maker(d.stops); }
+            });
+
+
+      var stop_dots = routes.selectAll('circle.bus-stop')
+        .data(function(d){return d.stops}).enter()
+          .append('circle')
+          .attr({
+            r: 3,
+            class: 'bus-stop',
+            cx: function(d){return xPos(d)},
+            cy: function(d){return yPos(d)},
+            })
+
+
+      var bounds = [
+        [ 37.70435, -122.53922],
+        [ 37.83644, -122.36434]
+      ];
+        // [
+        //   d3.min(d3.min(routes_data, function(r){return r.stops.map(function(d){return d.LATITUDE})})), 
+        //   d3.min(d3.min(routes_data, function(r){return r.stops.map(function(d){return d.LONGITUDE})})),
+        //   ],
+        // [ 
+        //   d3.max(d3.max(routes_data, function(r){return r.stops.map(function(d){return d.LATITUDE})})),
+        //   d3.max(d3.max(routes_data, function(r){return r.stops.map(function(d){return d.LONGITUDE})}))
+        //   ]
+        // ];
+        
+      map.on("viewreset", reset);
+      reset();
+      
+      // Reposition the SVG to cover the features.
+      function reset() {
+        var bottomLeft = projection(bounds[0]),
+            topRight = projection(bounds[1]);
+            
+        svg.attr("width", topRight[0] - bottomLeft[0])
+            .attr("height", bottomLeft[1] - topRight[1])
+            .style("margin-left", bottomLeft[0] + "px")
+            .style("margin-top", topRight[1] + "px");
+        
+        g.attr("transform", "translate(" + -bottomLeft[0] + "," + -topRight[1] + ")");
+        stop_dots.attr({
+          cx: function(d){return xPos(d)},
+          cy: function(d){return yPos(d)},
+          });
+        route_lines.attr('d', function(d){ return line_maker(d.stops); })
+      }
+
+    });
+    
+    
+  </script>
+
+</body>
+</html>
