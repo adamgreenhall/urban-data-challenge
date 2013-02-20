@@ -20,6 +20,11 @@
       stroke: black;
       fill: none;
     }
+    text.route-label {
+      text-anchor: middle;
+      fill: black;
+      stroke: grey;
+    }
     
 		#tooltip {
 			position: absolute;
@@ -59,6 +64,8 @@
   <div id="map"></div>
   
   <script type="text/javascript">
+    function translate(x, y){return "translate(" + x + "," + y + ")";}
+    
     var map = L.map('map', {
         center: [37.75853323855129, -122.43715028733901],
         zoom: 12
@@ -67,6 +74,11 @@
             attribution: '',
             maxZoom: 16,
           }));
+
+    var bounds = [
+      [ 37.70435, -122.53922],
+      [ 37.83644, -122.36434]
+    ];
           
     var svg = d3.select(map.getPanes().overlayPane).append("svg"),
     g = svg.append("g").attr("class", "leaflet-zoom-hide");
@@ -75,12 +87,9 @@
       var point = map.latLngToLayerPoint(new L.LatLng(x[0], x[1]));
       return [point.x, point.y];
     }
-    function xPos(d) {
-      return projection([d.LATITUDE, d.LONGITUDE])[0];
-    }
-    function yPos(d) {
-      return projection([d.LATITUDE, d.LONGITUDE])[1];
-    }
+    function xPos(d) { return projection([d.LATITUDE, d.LONGITUDE])[0]; }
+    function yPos(d) { return projection([d.LATITUDE, d.LONGITUDE])[1]; }
+    
     var line_maker = d3.svg.line()
       .x(function(d){return xPos(d); })
       .y(function(d){return yPos(d); })
@@ -94,39 +103,40 @@
         .append('g')
         .attr('class', function(d){return 'route route_no' + d.route})
     
-      var route_lines = routes.selectAll('path.bus-line')
-        .data(routes_data).enter()
-          .append('path')
+      var route_lines = routes.append('path')
           .attr({
             class: 'bus-line',
             d: function(d) { return line_maker(d.stops); }
             });
 
+      var end_stops = function(stops){
+          return [
+            stops.filter(function(s){return s.DIR == 0})[0], 
+            stops.filter(function(s){return s.DIR == 1})[0], 
+            ].filter(function(s){return s != undefined})        
+      } 
 
-      var stop_dots = routes.selectAll('circle.bus-stop')
-        .data(function(d){return d.stops}).enter()
-          .append('circle')
+
+      var bus_stops = routes.selectAll('g.bus-stop')
+        .data(function(d){ return end_stops(d.stops); }).enter()
+          .append('g')
+            .attr({
+              class: 'bus-stop',
+              transform: function(d){return translate(xPos(d), yPos(d));} 
+              })
+
+      var stop_dots = bus_stops.append('circle')
           .attr({
             r: 3,
             class: 'bus-stop',
-            cx: function(d){return xPos(d)},
-            cy: function(d){return yPos(d)},
-            })
+            });
 
+      var stop_labels = bus_stops.append('text')
+            .text(function(d){return d.ROUTE})
+            .attr({
+              class: 'route-label'
+            });
 
-      var bounds = [
-        [ 37.70435, -122.53922],
-        [ 37.83644, -122.36434]
-      ];
-        // [
-        //   d3.min(d3.min(routes_data, function(r){return r.stops.map(function(d){return d.LATITUDE})})), 
-        //   d3.min(d3.min(routes_data, function(r){return r.stops.map(function(d){return d.LONGITUDE})})),
-        //   ],
-        // [ 
-        //   d3.max(d3.max(routes_data, function(r){return r.stops.map(function(d){return d.LATITUDE})})),
-        //   d3.max(d3.max(routes_data, function(r){return r.stops.map(function(d){return d.LONGITUDE})}))
-        //   ]
-        // ];
         
       map.on("viewreset", reset);
       reset();
@@ -141,11 +151,14 @@
             .style("margin-left", bottomLeft[0] + "px")
             .style("margin-top", topRight[1] + "px");
         
-        g.attr("transform", "translate(" + -bottomLeft[0] + "," + -topRight[1] + ")");
-        stop_dots.attr({
-          cx: function(d){return xPos(d)},
-          cy: function(d){return yPos(d)},
-          });
+        g.attr("transform", translate(-bottomLeft[0], -topRight[1]));
+        bus_stops.attr('transform', 
+          function(d){return translate(xPos(d), yPos(d))}
+        )
+        // stop_dots.attr({
+        //   cx: function(d){return xPos(d)},
+        //   cy: function(d){return yPos(d)},
+        //   });
         route_lines.attr('d', function(d){ return line_maker(d.stops); })
       }
 
