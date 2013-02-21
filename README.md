@@ -11,5 +11,7 @@ Right now we are using a basic html server:
     cd web; python -m SimpleHTTPServer 8080
     
 [Stop map](http://localhost:8080/stop_map.html)
+
 [Route map](http://localhost:8080/route_map.html)
+
 [Stop motion demo](http://localhost:8080/stop_motion.html)
