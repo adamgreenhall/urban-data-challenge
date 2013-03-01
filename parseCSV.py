@@ -22,6 +22,29 @@ schedArrivals = pd.read_csv('data/san-francisco/scheduled-arrivals.excerpt.csv',
             'PUBLIC_ROUTE_NAME', 'TRIP_ID', 'BLOCK_NAME',
             'LONGITUDE', 'LATITUDE', 'SCHEDULED_ARRIVAL_TIME',
         ])
+# Build a dictionary of all the bus locations for a city, indexed by time
+timeBlobs = {}
+for i in range(len(schedArrivals)):
+    # Day Index
+    day = '0'+str(schedArrivals['SCHEDULED_ARRIVAL_TIME'][i][3:4])+'102012'
+    time = str(schedArrivals['SCHEDULED_ARRIVAL_TIME'][i][10:].zfill(18))
+    if time[16:18] == 'PM':
+        time = str(int(time[3:4])+12)+time[2:]
+    time = time[:16]
+    hour = time[:2]
+    minute = time[3:5]
+    if day not in timeBlobs:
+        timeBlobs[day+hour+minute] = [{'PUBLIC_ROUTE_NAME': schedArrivals['PUBLIC_ROUTE_NAME'][i], \
+                                   'TRIP_ID': schedArrivals['TRIP_ID'][i], \
+                                   'BLOCK_NAME': schedArrivals['BLOCK_NAME'][i], \
+                                   'LONGITUDE': schedArrivals['LONGITUDE'][i], \
+                                   'LATITUDE': schedArrivals['LATITUDE'][i]}]
+    else:      
+        timeBlobs[day+hour+minute].append({'PUBLIC_ROUTE_NAME': schedArrivals['PUBLIC_ROUTE_NAME'][i], \
+                                   'TRIP_ID': schedArrivals['TRIP_ID'][i], \
+                                   'BLOCK_NAME': schedArrivals['BLOCK_NAME'][i], \
+                                   'LONGITUDE': schedArrivals['LONGITUDE'][i], \
+                                   'LATITUDE': schedArrivals['LATITUDE'][i]})
                       
 # From Adam's code
 #os.system('!grep -n \",2\\(4\\|5\\|6\\|7\\|8\\|9\\):\" data/san-francisco/passenger-count-excerpt.csv |cut -f1 -d: > data/san-francisco/bad_hour_lines.csv')
@@ -55,7 +78,7 @@ pcounts = pd.read_csv('data/san-francisco/passenger-count.excerpt.csv',
 pcounts['stop_seconds'] = 0
 for i in range(len(pcounts)):
     pcounts['stop_seconds'][i] = (np.datetime64(pcounts['time_pullout'][i]) - np.datetime64(pcounts['time_stop'][i])).item().seconds
-    
+ 
 #print pcounts['stop_seconds'].describe()
 
 stop_variability = pcounts.groupby('STOP_ID').stop_seconds.agg([np.mean, np.std])
