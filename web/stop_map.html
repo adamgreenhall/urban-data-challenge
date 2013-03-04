@@ -2,9 +2,11 @@
 <html lang="en">
 <head>
   <title>San Francisco MUNI Stops</title>
-  <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.5/leaflet.css" />
-  <script src="http://cdn.leafletjs.com/leaflet-0.5/leaflet.js"></script>
+  <link rel="stylesheet" href="leaflet.css" />
+  <script type="text/javascript" src="leaflet.js"></script>
   <script type="text/javascript" src="d3.js"></script>
+  <script type="text/javascript" src="topojson.js"></script>
+  
   <!-- <script src="stop_map.js"></script> -->
   <style type="text/css">
     #map { 
@@ -54,6 +56,7 @@
 	</div>  
   <div id="map"></div>
   
+
   <script type="text/javascript">
     var map = L.map('map', {
         center: [37.75853323855129, -122.43715028733901],
@@ -68,16 +71,34 @@
     g = svg.append("g").attr("class", "leaflet-zoom-hide");
         
     function projection(x) {
-      var point = map.latLngToLayerPoint(new L.LatLng(x[0], x[1]));
-      return [point.x, point.y];
+      return map.latLngToLayerPoint(new L.LatLng(x[0], x[1]));
     }        
     
-    var path = d3.geo.path().projection(projection);
+    var path = d3.geo.path()
+      .projection(function(d){var pt = projection(d); return [pt.x, pt.y];})
+    
     var tooltip = d3.select("#tooltip");
     
-    d3.json("stops_sf.json", function(stops) {
+    // d3.json("san-francisco/routes.json", function(routes) {
+    //   g.selectAll("path.bus-route")
+    //     .data(topojson.object(routes, routes.objects.routes).geometries).enter()
+    //     .append('path')
+    //     .attr({
+    //       class: 'bus-route',
+    //       d: function(d){debugger; return path(d.coordinates)},
+    //     })
+    // });
+    
+    d3.json("san-francisco/stops.json", function(stops) {
+
+      // convert back to lat-long coordinates
+      var stop_coordinates = topojson.object(stops, {
+        type: "MultiPoint",   
+        coordinates: stops.objects.stops.geometries.map(function(d){return d.coordinates})
+      }).coordinates;
+      
       var dots = g.selectAll("circle")
-        .data(stops).enter()
+        .data(stops.objects.stops.geometries).enter()
         .append("circle")
         .attr("r", 5)
         .on("mouseover", function(d) {
@@ -92,12 +113,13 @@
 					var yPosition = parseFloat(dot.attr("cy"));
 
 					//Update the tooltip position and value
-
 					tooltip
 						.style("left", xPosition + 10 + "px")
 						.style("top", yPosition + 10 + "px");
-					tooltip.select(".route-name").text(d.ROUTE);
-					tooltip.select(".stop-name").text(d.STOP_NAME);
+
+					// TODO
+					// tooltip.select(".route-name").text(d.properties.name_route);
+					tooltip.select(".stop-name").text(d.properties.STOPNAME);
 
 					//Show the tooltip
 					tooltip.classed("hidden", false);
@@ -110,17 +132,15 @@
 					//Hide the tooltip
 					tooltip.classed("hidden", true);
 			   })
-
-      
-      var bounds = [
-        [ 
-          d3.min(stops, function(d){return d.LATITUDE}), 
-          d3.min(stops, function(d){return d.LONGITUDE})  ],
-        [ 
-          d3.max(stops, function(d){return d.LATITUDE}), 
-          d3.max(stops, function(d){return d.LONGITUDE}) ]
-        ];
-
+        
+        var bounds = [
+          [ 
+            d3.min(stop_coordinates, function(d){return d[1]}),     // lat
+            d3.min(stop_coordinates, function(d){return d[0]})  ],  // long
+          [ 
+            d3.max(stop_coordinates, function(d){return d[1]}), 
+            d3.max(stop_coordinates, function(d){return d[0]}) ]
+          ];
       map.on("viewreset", reset);
       reset();
       
@@ -129,20 +149,19 @@
         var bottomLeft = projection(bounds[0]),
             topRight = projection(bounds[1]);
             
-        svg.attr("width", topRight[0] - bottomLeft[0])
-            .attr("height", bottomLeft[1] - topRight[1])
-            .style("margin-left", bottomLeft[0] + "px")
-            .style("margin-top", topRight[1] + "px");
-        
-        g.attr("transform", "translate(" + -bottomLeft[0] + "," + -topRight[1] + ")");
+        svg.attr("width", topRight.x - bottomLeft.x)
+            .attr("height", bottomLeft.y - topRight.y)
+            .style("margin-left", bottomLeft.x + "px")
+            .style("margin-top", topRight.y + "px");
+
+        g.attr("transform", "translate(" + -bottomLeft.x + "," + -topRight.y + ")");
         dots.attr({
-          cx: function(d){return projection([d.LATITUDE, d.LONGITUDE])[0]},
-          cy: function(d){return projection([d.LATITUDE, d.LONGITUDE])[1]},
+          cx: function(d, i){return projection(stop_coordinates[i].slice().reverse()).x},
+          cy: function(d, i){return projection(stop_coordinates[i].slice().reverse()).y},
           });
       }
 
-    });
-    
+    });  
     
   </script>
 
