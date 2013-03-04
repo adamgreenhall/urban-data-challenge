@@ -61,7 +61,7 @@
   
 
   <script type="text/javascript">
-    var city = 'san-francisco',
+    var city = 'geneva',
         centers = {
           'san-francisco': [37.783333, -122.416667],
           'geneva': [46.2, 6.15],
@@ -123,8 +123,8 @@
 						.style("top", yPosition + 10 + "px");
 
 					// TODO
-					// tooltip.select(".route-name").text(d.properties.name_route);
-					tooltip.select(".stop-name").text(d.properties.STOPNAME);
+					tooltip.select(".route-name").text(d.properties.name_route);
+					tooltip.select(".stop-name").text(d.properties.name_stop);
 
 					//Show the tooltip
 					tooltip.classed("hidden", false);
