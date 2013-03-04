@@ -61,8 +61,15 @@
   
 
   <script type="text/javascript">
+    var city = 'san-francisco',
+        centers = {
+          'san-francisco': [37.783333, -122.416667],
+          'geneva': [46.2, 6.15],
+          'zurich': [47.366667, 8.55]
+    };
+  
     var map = L.map('map', {
-        center: [37.75853323855129, -122.43715028733901],
+        center: centers[city],
         zoom: 12
         }).addLayer(
           new L.tileLayer('http://{s}.tile.cloudmade.com/62541519723e4a6abd36d8a4bb4d6ac3/998/256/{z}/{x}/{y}.png', {
@@ -80,25 +87,25 @@
     
     var path = d3.geo.path()
       .projection(projection)
-    
-    function multipath(d){
-      return path(d);
-    };
-    
+        
     var tooltip = d3.select("#tooltip");
     
-    d3.json("san-francisco/stops.json", function(stops) {
-
+    var bus_routes = undefined,
+        bus_stops = undefined,
+        stop_coordinates = undefined,
+        bounds = undefined;
+    
+    d3.json(city + "/stops.json", function(stops) {
       // convert back to lat-long coordinates
-      var stop_coordinates = topojson.object(stops, {
+      stop_coordinates = topojson.object(stops, {
         type: "MultiPoint",   
         coordinates: stops.objects.stops.geometries.map(function(d){return d.coordinates})
       }).coordinates;
       
-      var dots = g.selectAll("circle")
+      bus_stops = g.selectAll("circle")
         .data(stops.objects.stops.geometries).enter()
         .append("circle")
-        .attr("r", 5)
+        .attr("r", 3)
         .on("mouseover", function(d) {
 
           var dot = d3.select(this)
@@ -131,7 +138,7 @@
 					tooltip.classed("hidden", true);
 			   })
         
-        var bounds = [
+        bounds = [
           [ 
             d3.min(stop_coordinates, function(d){return d[0]}),     // long
             d3.min(stop_coordinates, function(d){return d[1]}),     // lat
@@ -142,42 +149,60 @@
             ]
           ];
       
-      var bus_routes;
-      
-      d3.json("san-francisco/routes.json", function(routes) {
-        bus_routes = g.selectAll("path.bus-route")
-          .data(topojson.object(routes, routes.objects.routes).geometries).enter()
-          .append('path')
+
+      map.on("viewreset", reset);
+      reset();      
+
+      // define all bus lines together
+      d3.json(city + "/routes.json", function(routes) {
+        bus_routes = g.append("path")
+          .datum(topojson.object(routes, routes.objects.routes))
           .attr({
             class: 'bus-route',
-            d: multipath,
+            d: path,
           })
-        map.on("viewreset", reset);
-        reset();
-
       });      
-      
-      
-      
-      // Reposition the SVG to cover the features.
-      function reset() {
-        var bottomLeft = projection(bounds[0]),
-            topRight = projection(bounds[1]);
-            
-        svg.attr("width", topRight[0] - bottomLeft[0])
-            .attr("height", bottomLeft[1] - topRight[1])
-            .style("margin-left", bottomLeft[0] + "px")
-            .style("margin-top", topRight[1] + "px");
 
-        g.attr("transform", "translate(" + -bottomLeft[0] + "," + -topRight[1] + ")");
-        dots.attr({
-          cx: function(d, i){return projection(stop_coordinates[i])[0]},
-          cy: function(d, i){return projection(stop_coordinates[i])[1]},
-          });
-        bus_routes.attr('d', multipath);
-      }
+      // // define each line individually
+      // d3.json(city + "/routes.json", function(routes) {
+      //   bus_routes = g.selectAll("path.bus-route")
+      //     .data(topojson.object(routes, routes.objects.routes).geometries).enter()
+      //     .append('path')
+      //     .attr({
+      //       class: 'bus-route',
+      //       d: path,
+      //     })
+      // });      
 
     });  
+
+  // Reposition the SVG to cover the features.
+  function reset() {
+    if (bounds === undefined){
+      return
+    }
+    
+    var bottomLeft = projection(bounds[0]),
+        topRight = projection(bounds[1]);
+      
+    svg.attr("width", topRight[0] - bottomLeft[0])
+        .attr("height", bottomLeft[1] - topRight[1])
+        .style("margin-left", bottomLeft[0] + "px")
+        .style("margin-top", topRight[1] + "px");
+
+    g.attr("transform", "translate(" + -bottomLeft[0] + "," + -topRight[1] + ")");
+    
+    if (bus_stops !== undefined) {
+      bus_stops.attr({
+        cx: function(d, i){return projection(stop_coordinates[i])[0]},
+        cy: function(d, i){return projection(stop_coordinates[i])[1]},
+        });      
+    }
+    if (bus_routes !== undefined) {
+      bus_routes.attr('d', path);
+    }
+  }
+
     
   </script>
 
