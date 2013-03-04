@@ -18,7 +18,10 @@
       fill-opacity: 0.7;
     }
     circle:hover {fill: black;}
-    
+    path.bus-route{
+      fill: none;
+      stroke: black;
+    }
 		#tooltip {
 			position: absolute;
 			width: 200px;
@@ -71,23 +74,18 @@
     g = svg.append("g").attr("class", "leaflet-zoom-hide");
         
     function projection(x) {
-      return map.latLngToLayerPoint(new L.LatLng(x[0], x[1]));
+      pt = map.latLngToLayerPoint(new L.LatLng(x[1], x[0]));
+      return [pt.x, pt.y];
     }        
     
     var path = d3.geo.path()
-      .projection(function(d){var pt = projection(d); return [pt.x, pt.y];})
+      .projection(projection)
+    
+    function multipath(d){
+      return path(d);
+    };
     
     var tooltip = d3.select("#tooltip");
-    
-    // d3.json("san-francisco/routes.json", function(routes) {
-    //   g.selectAll("path.bus-route")
-    //     .data(topojson.object(routes, routes.objects.routes).geometries).enter()
-    //     .append('path')
-    //     .attr({
-    //       class: 'bus-route',
-    //       d: function(d){debugger; return path(d.coordinates)},
-    //     })
-    // });
     
     d3.json("san-francisco/stops.json", function(stops) {
 
@@ -135,30 +133,48 @@
         
         var bounds = [
           [ 
+            d3.min(stop_coordinates, function(d){return d[0]}),     // long
             d3.min(stop_coordinates, function(d){return d[1]}),     // lat
-            d3.min(stop_coordinates, function(d){return d[0]})  ],  // long
+          ],
           [ 
+            d3.max(stop_coordinates, function(d){return d[0]}),
             d3.max(stop_coordinates, function(d){return d[1]}), 
-            d3.max(stop_coordinates, function(d){return d[0]}) ]
+            ]
           ];
-      map.on("viewreset", reset);
-      reset();
+      
+      var bus_routes;
+      
+      d3.json("san-francisco/routes.json", function(routes) {
+        bus_routes = g.selectAll("path.bus-route")
+          .data(topojson.object(routes, routes.objects.routes).geometries).enter()
+          .append('path')
+          .attr({
+            class: 'bus-route',
+            d: multipath,
+          })
+        map.on("viewreset", reset);
+        reset();
+
+      });      
+      
+      
       
       // Reposition the SVG to cover the features.
       function reset() {
         var bottomLeft = projection(bounds[0]),
             topRight = projection(bounds[1]);
             
-        svg.attr("width", topRight.x - bottomLeft.x)
-            .attr("height", bottomLeft.y - topRight.y)
-            .style("margin-left", bottomLeft.x + "px")
-            .style("margin-top", topRight.y + "px");
+        svg.attr("width", topRight[0] - bottomLeft[0])
+            .attr("height", bottomLeft[1] - topRight[1])
+            .style("margin-left", bottomLeft[0] + "px")
+            .style("margin-top", topRight[1] + "px");
 
-        g.attr("transform", "translate(" + -bottomLeft.x + "," + -topRight.y + ")");
+        g.attr("transform", "translate(" + -bottomLeft[0] + "," + -topRight[1] + ")");
         dots.attr({
-          cx: function(d, i){return projection(stop_coordinates[i].slice().reverse()).x},
-          cy: function(d, i){return projection(stop_coordinates[i].slice().reverse()).y},
+          cx: function(d, i){return projection(stop_coordinates[i])[0]},
+          cy: function(d, i){return projection(stop_coordinates[i])[1]},
           });
+        bus_routes.attr('d', multipath);
       }
 
     });  
