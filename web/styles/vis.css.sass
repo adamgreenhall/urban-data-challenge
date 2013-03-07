@@ -37,3 +37,17 @@ path.bus-route
     font-family: sans-serif
     font-size: 16px
     line-height: 20px
+    
+#route_vis  
+  circle
+    &.bus
+      fill: steelblue
+    &.bus-stop
+      fill: grey
+      fill-opacity: 0.7
+
+  line.bus-line
+    stroke: rgba(6, 120, 155, 0.8)
+    fill: none
+    stroke-width: 2px
+    shape-rendering: crispEdges

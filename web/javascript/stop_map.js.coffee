@@ -7,15 +7,12 @@ projection = (x) ->
   pt = map.latLngToLayerPoint(new L.LatLng(x[1], x[0]))
   return [pt.x, pt.y]
 
-translate = (x, y) ->
-  "translate(" + x + "," + y + ")"
-
 map_redraw = ->
   # redraw the d3 objects on the map on zoom/pan
   return if bounds is `undefined`
   bottomLeft = projection(bounds[0])
   topRight = projection(bounds[1])
-  svg
+  svg_map
     .attr
       width: topRight[0] - bottomLeft[0]
       height: bottomLeft[1] - topRight[1]
@@ -58,6 +55,26 @@ route_mouseout = (d) ->
   route = d3.select(this)
   route.classed "highlighted", false
   
+route_click = (d) -> 
+  route = d3.select(this)
+  id_route = d.properties.id_route
+  d3.select('#route_vis_panel > .route_number').text(id_route)
+  d3.select('#route_vis_panel > .route_name').text(d.properties.name_route)
+
+  # load up the timeseries data for the route
+  # d3.json("/data/" + city + '/timeseries/' + id_route + '.json', show_ts)  
+  data = [
+    time: 0
+    x: 10
+  ,
+    time: 2
+    x: 150
+  ,
+    time: 5
+    x: 450
+  ]  
+  show_ts(data)
+
 
 centers =
   "san-francisco": [37.783333, -122.416667]
@@ -74,8 +91,8 @@ map = L.map("map", {
     maxZoom: 16
   }))
   
-svg = d3.select(map.getPanes().overlayPane).append("svg")
-g = svg.append("g").attr("class", "leaflet-zoom-hide")
+svg_map = d3.select(map.getPanes().overlayPane).append("svg")
+g = svg_map.append("g").attr("class", "leaflet-zoom-hide")
 path = d3.geo.path().projection(projection)
 tooltip = d3.select("#tooltip")
 
@@ -122,3 +139,4 @@ d3.json "/data/" + city + "/stops.json", (stops) ->
       )
       .on("mouseover", route_mouseover)
       .on("mouseout", route_mouseout)
+      .on("click", route_click)
