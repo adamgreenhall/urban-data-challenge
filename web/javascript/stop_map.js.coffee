@@ -54,26 +54,41 @@ route_mouseover = (d) ->
 route_mouseout = (d) ->      
   route = d3.select(this)
   route.classed "highlighted", false
-  
+
+ts_load_requests = []
+
 route_click = (d) -> 
   route = d3.select(this)
   id_route = d.properties.id_route
   d3.select('#route_vis_panel > .route_number').text(id_route)
   d3.select('#route_vis_panel > .route_name').text(d.properties.name_route)
 
+  # clear out any existing visualizations
+  d3.selectAll('#route_vis > svg').remove()
+  
+  # stop loading any other route data
+  req.abort() for req in ts_load_requests
+  ts_load_requests = []
+
   # load up the timeseries data for the route
-  # d3.json("/data/" + city + '/timeseries/' + id_route + '.json', show_ts)  
-  data = [
-    time: 0
-    x: 10
-  ,
-    time: 2
-    x: 150
-  ,
-    time: 5
-    x: 450
-  ]  
-  show_ts(data)
+  # TODO - only have SF #41 defined for now 
+  id_route = 41
+  ts_load_requests.push(
+    d3.json("/data/" + city + '/timeseries/' + id_route + '.json', show_ts)
+  )
+ 
+  # #fake some data and show that instead
+  # data = [
+  #   time: 0
+  #   x: 10
+  # ,
+  #   time: 2
+  #   x: 150
+  # ,
+  #   time: 5
+  #   x: 450
+  # ]  
+  # show_ts(data)
 
 
 centers =

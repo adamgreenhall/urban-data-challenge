@@ -1,4 +1,8 @@
 window.show_ts = (data) ->
+  xVal = (d) -> d.distance
+  tVal = (d) -> d.time
+  rVal = (d) -> d.count  # passenger count
+  
   margin =
     top: 20
     right: 20
@@ -17,12 +21,20 @@ window.show_ts = (data) ->
     transform: translate(margin.left, margin.top)
   
   Tmax = 2000
+  # the linear scale only works with UTC timestamps
   tScale = d3.scale.linear()
-    .domain(d3.extent(data, (d) -> d.time))
+    .domain(d3.extent(data, tVal))
     .range([0, Tmax])
+  
   xScale = d3.scale.linear()
-    .domain(d3.extent(data, (d) -> d.x))
+    .domain(d3.extent(data, xVal))
     .range([0, width])
+    
+  rScale = d3.scale.linear()
+    .domain(d3.extent(data, rVal))
+    .range([3, 20])
+
+    
   yPos = height / 2
   line = g.append("line").attr
     x1: xScale.range()[0]
@@ -36,27 +48,28 @@ window.show_ts = (data) ->
     .append("circle").attr
       class: "bus-stop"
       r: 3
-      cx: (d) -> xScale d.x
+      cx: (d) -> xScale(xVal(d))
       cy: yPos
   
   bus = g.append("circle").attr
     class: "bus"
-    r: 5
-    cx: xScale(data[0].x)
+    r: rScale(rVal(data[0]))
+    cx: xScale(xVal(data[0]))
     cy: yPos
   
   
 
   trigger_event = (event_number) ->
-    event_length = tScale(data[event_number].time)
+    event_length = tScale(tVal(data[event_number]))
     bus.transition()
       .duration(event_length)
       .attr
-        cx: xScale(data[event_number].x)
+        cx: xScale(xVal(data[event_number]))
+        r: rScale(rVal(data[event_number]))
     
     # trigger next after transition is done
     timer_fn = () ->  
-      if event_number < data.length - 1
+      if event_number < (data.length - 1)
         trigger_event(event_number + 1)
       else
         reset_to_beginning()
@@ -70,12 +83,12 @@ window.show_ts = (data) ->
   
     fade_end_fn = () ->
       # reset the position to t0
-      bus.attr "cx", xScale(data[0].x)
+      bus.attr "cx", xScale(xVal(data[0]))
     
       # fade the bus back in
       bus.transition()
         .duration(reset_duration / 5)
-        .style("fill-opacity", 1)
+        .style("fill-opacity", 0.8)
     
     bus.transition()
       .duration(reset_duration * 4 / 5)
