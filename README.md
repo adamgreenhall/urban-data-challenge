@@ -6,12 +6,8 @@ with [topojson](http://bost.ocks.org/mike/map/).
  
 Also a handy reference is the [d3 book](https://github.com/alignedleft/d3-book).
 
-Data is getting parsed using parse_data.ipynb (an ipython notebook).
+Time series data is getting parsed by ipython notebooks (one per city, since the formats are different).
 
-Right now we are using a basic html server:
+Serving it up (now with [stasis](http://stasis.me/):
 
-    cd web; python -m SimpleHTTPServer 8080
-    
-[Stop map](http://localhost:8080/stop_map.html)
-
-[Stop motion demo](http://localhost:8080/stop_motion.html)
+    cd web; stasis -d 3000
