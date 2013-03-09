@@ -8,6 +8,6 @@ Also a handy reference is the [d3 book](https://github.com/alignedleft/d3-book).
 
 Time series data is getting parsed by ipython notebooks (one per city, since the formats are different).
 
-Serving it up (now with [stasis](http://stasis.me/):
+Serving it up, now with [stasis](http://stasis.me/):
 
     cd web; stasis -d 3000

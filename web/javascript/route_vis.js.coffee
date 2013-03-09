@@ -51,15 +51,63 @@ window.show_ts = (data) ->
       cx: (d) -> xScale(xVal(d))
       cy: yPos
   
+  
+  
   bus = g.append("circle").attr
     class: "bus"
     r: rScale(rVal(data[0]))
     cx: xScale(xVal(data[0]))
     cy: yPos
+
+  # setup the force layout for the people moving to the bus stops
+  passenger_nodes = []
+
+  force = d3.layout.force()
+    .nodes(passenger_nodes)
+    .links([])
+    .gravity(0)
+    .size([svg_route.width, svg_route.height])
   
+  force.on "tick", (e) ->
+    # Push nodes toward their designated focus.
+    k = .9 * e.alpha
+    passenger_nodes.forEach (o, i) ->
+      o.x += (xScale(xVal(data[o.id])) - o.x) * k
+      o.y += (yPos - o.y) * k
+
+    g.selectAll("circle.passenger").attr
+      cx: (d) -> d.x
+      cy: (d) -> d.y
   
+  color_filler = d3.scale.category20()
+  
+  current_bus_stop = 0
+  
+  add_passenger_to_bus_stop = (id) -> 
+    id or= getRandomInt(current_bus_stop + 1, data.length) # ~~(Math.random() * data.length)
+    passenger_nodes.push 
+      id: id
+      # centered horizontally on the foci, but with some scatter to either side 
+      x: xScale(xVal(data[id])) + (Math.random() - 0.5) * width / data.length
+      y: Math.random() * height
+    force.start()
+    g.selectAll("circle.passenger")
+      .data(passenger_nodes).enter()
+      .append("circle").attr
+        class: "passenger"
+        cx: (d) -> d.x
+        cx: (d) -> d.y
+        r: 3
+      .style
+        fill: (d) -> color_filler(d.id)
+        stroke: (d) -> d3.rgb(color_filler(d.id)).darker(2)
+        "stroke-width": 1.5
+      .call(force.drag)
+
+  passenger_adder = setInterval(add_passenger_to_bus_stop, 200)
 
   trigger_event = (event_number) ->
+    current_bus_stop = event_number
     event_length = tScale(tVal(data[event_number]))
     bus.transition()
       .duration(event_length)
@@ -80,7 +128,10 @@ window.show_ts = (data) ->
 
   reset_to_beginning = (reset_duration) ->
     reset_duration = reset_duration or 2000
-  
+    
+    clearInterval(passenger_adder) # HACK - clear out passengers
+    
+    
     fade_end_fn = () ->
       # reset the position to t0
       bus.attr "cx", xScale(xVal(data[0]))
