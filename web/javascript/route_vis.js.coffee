@@ -10,12 +10,12 @@ window.show_ts = (data_stops) ->
     bottom: 20
     left: 20
 
-  width = 600 - margin.left - margin.right
+  width = 1200 - margin.left - margin.right
   height = 300 - margin.top - margin.bottom
   bus_color = 'steel-blue'
 
   # if departure time is not defined, the default is 15 seconds after arrival
-  d.time_departure or= d.time + 15 for d in data_stops
+  d.time_departure or= d.time + 30 for d in data_stops
 
 
   svg_route = d3.select('#route_vis').append('svg').attr
@@ -25,7 +25,7 @@ window.show_ts = (data_stops) ->
   g = svg_route.append("g").attr
     transform: translate(margin.left, margin.top)
   
-  Tmax = 5000
+  Tmax = 20000
   # a linear scale mapping the time difference (in UTC seconds)
   # to the length of the visualization playback (2sec)
   tScale = d3.scale.linear()
@@ -67,30 +67,39 @@ window.show_ts = (data_stops) ->
 
   # setup the force layout for the people moving to the bus stops
   data_passengers = []
+  passenger_circles = g.selectAll("circle.passenger")
 
+  tick_fn = (e) ->
+    # Push nodes toward their designated focus.
+    k = .9 * e.alpha
+    data_passengers.forEach (o, i) ->
+      o.x += (xScale(xVal(data_stops[o.stop_number])) - o.x) * k
+      o.y += (yPos - o.y) * k
+    passenger_circles.attr
+      cx: (d) -> d.x
+      cy: (d) -> d.y
+    return
+      
   force = d3.layout.force()
     .nodes(data_passengers)
     .links([])
     .gravity(0)
     .size([svg_route.width, svg_route.height])
-  
-  force.on "tick", (e) ->
-    # Push nodes toward their designated focus.
-    k = .9 * e.alpha
-    data_passengers.forEach (o, i) ->
-      o.x += (xScale(xVal(data_stops[o.id])) - o.x) * k
-      o.y += (yPos - o.y) * k
+    .on('tick', tick_fn)
+    
 
-    g.selectAll("circle.passenger").attr
-      cx: (d) -> d.x
-      cy: (d) -> d.y
+
+
+  
   
   color_filler = d3.scale.category20()
   
   current_bus_stop = 0
 
-  redraw_passengers = (data_passengers) ->
-    passenger_circles = g.selectAll("circle.passenger").data(data_passengers)
+  redraw_passengers = (boarding_duration) ->
+    boarding_duration or= 500  # ms
+    force.nodes(data_passengers)
+    passenger_circles = passenger_circles.data(force.nodes(), (d) -> d.index)
     passenger_circles.enter()
       .append("circle").attr
         class: "passenger"
@@ -98,23 +107,34 @@ window.show_ts = (data_stops) ->
         cx: (d) -> d.y
         r: 3
       .style
-        fill: (d) -> color_filler(d.id)
-        stroke: (d) -> d3.rgb(color_filler(d.id)).darker(2)
+        fill: (d) -> color_filler(d.stop_number)
+        stroke: (d) -> d3.rgb(color_filler(d.stop_number)).darker(2)
         "stroke-width": 1.5
       .call(force.drag)
-    passenger_circles.exit().remove()
+
+    passenger_circles.exit()
+      .transition(boarding_duration)
+      .attr
+        cx: (d) -> xScale(xVal(data_stops[d.stop_number]))
+        cy: yPos
+    drop_circles = () ->
+      passenger_circles.exit().remove()
+      return
+    d3.timer(drop_circles, boarding_duration)
+      
     force.start()
+    return
   
   add_passenger_to_bus_stop = (stop_number) -> 
     return if current_bus_stop >= data_stops.length - 1
-    stop_number or= getRandomInt(current_bus_stop + 1, data_stops.length - 1)
     data_passengers.push 
-      id: stop_number
+      stop_number: stop_number
       # centered horizontally on the foci, but with some scatter to either side 
       x: xScale(xVal(data_stops[stop_number])) + (Math.random() - 0.5) * width / data_stops.length
       y: Math.random() * height
     
-    redraw_passengers(data_passengers)
+    redraw_passengers()
+
   
   show_departing_passengers = (stop_number) ->
     stop = data_stops[stop_number]
@@ -132,12 +152,16 @@ window.show_ts = (data_stops) ->
         class: 'passenger-departing-' + stop_number
         cx: xScale(xVal(stop))
         cy: yPos
-        r: 2
+        r: 3
+      .style
+        fill: color_filler(stop_number)
+        stroke: d3.rgb(color_filler(stop_number)).darker(2)
+        "stroke-width": 1.5        
     departing_passengers.style
-        fill: 'grey'
+        fill: color_filler(stop_number)
     # set the duration of the departure
     duration = tScale(tDepartureVal(stop) - tVal(stop)) + 1000
-    # faee out and move to some random position near the stop
+    # fade out and move to some random position near the stop
     
     departing_passengers.transition()
       .duration(duration)
@@ -145,7 +169,7 @@ window.show_ts = (data_stops) ->
         cx: (d) -> d.xEnd
         cy: (d) -> d.yEnd
       .style
-        'fill-opacity': 0.2
+        'fill-opacity': 0.01
     
     # when transition ends - remove the data  
     drop_data = () ->
@@ -153,21 +177,27 @@ window.show_ts = (data_stops) ->
       return
     d3.timer(drop_data, duration)
     
-    
-    
-  passenger_adder = setInterval(add_passenger_to_bus_stop, 200)
+  show_boarding_passengers = (stop_number, duration_boarding) ->
+    # TODO - transition the people to get onto the bus
+    if data_passengers.length > 0
+      data_passengers = data_passengers.filter((p) -> p.stop_number != stop_number)
+      # redraw the force layout without this stop's people
+      redraw_passengers(duration_boarding)
+      return
 
   move_bus = (stop_number) ->
     current_bus_stop = stop_number
     if stop_number == 0
-      event_length = 0
+      duration_motion = 0
+      duration_stopped = 0
     else
       # transition duration is the difference between prev. stop departure time and arrival
-      event_length = tScale( tVal(data_stops[stop_number]) - tDepartureVal(data_stops[stop_number - 1]) )
-    
+      duration_motion = tScale( tVal(data_stops[stop_number]) - tDepartureVal(data_stops[stop_number - 1]) )
+      duration_stopped = tScale( tDepartureVal(data_stops[stop_number]) - tVal(data_stops[stop_number]) )
+      
     # move bus to 
     bus.transition()
-      .duration(event_length)
+      .duration(duration_motion)
       .attr
         cx: xScale(xVal(data_stops[stop_number]))
         r: rScale(rVal(data_stops[stop_number]))
@@ -177,6 +207,10 @@ window.show_ts = (data_stops) ->
       if stop_number < (data_stops.length - 1)
         # passengers get out
         show_departing_passengers(stop_number)
+        
+        # passengers get on
+        show_boarding_passengers(stop_number, duration_stopped)
+        
         # pause for the time the bus spends at the stop.
         # and then move the bus to the next stop
         move_fn = () ->
@@ -188,13 +222,13 @@ window.show_ts = (data_stops) ->
         reset_to_beginning()
       return true
       
-    d3.timer(timer_fn, event_length)
+    d3.timer(timer_fn, duration_motion)
   
 
   reset_to_beginning = (reset_duration) ->
     reset_duration = reset_duration or 2000
     
-    clearInterval(passenger_adder) # HACK - clear out passengers
+    # clearInterval(passenger_adder) # HACK - clear out passengers
     
     
     fade_end_fn = () ->
@@ -211,13 +245,37 @@ window.show_ts = (data_stops) ->
       .style("fill-opacity", 0)
       .each("end", fade_end_fn)  # at the end of the fade out
     
-    # after the transition back to t0
-    restart_fn = () ->
-      # re-trigger the first event
-      move_bus(0)
-      return true      
-    d3.timer(restart_fn, reset_duration)
+    d3.timer(starter_fn, reset_duration)
+
+  # after the transition back to t0
+  starter_fn = () ->
+    # set up the passenger arrival timing
+    data_passenger_timing = []
+    data_stops.forEach (stop, s) ->
+      range(stop.count_boarding).forEach (el, i) -> 
+        # TODO make the passenger more likely to get to stop just before bus arrives
+        # currently equally likely that passeger arrives while 
+        # bus is anywhere between 5 and 1 stop away
+        if s > 5
+          tPrev = tVal(data_stops[s - 5])
+        else
+          tPrev = tVal(data_stops[0])
+        data_passenger_timing.push
+          time_appear: getRandomRange(tVal(stop), tPrev) - tVal(data_stops[0])
+          stop_number: s
+          
+    # add the passengers to the stops as they arrive
+    data_passenger_timing.forEach (psgr, p) ->
+      adder_fn = () ->
+        add_passenger_to_bus_stop(psgr.stop_number)
+        return true
+      d3.timer(adder_fn, tScale(psgr.time_appear))
+      return
+    # re-trigger the first event
+    move_bus(0)
+    return true      
 
 
   # start the bus moving
-  move_bus(0)
+  starter_fn()
+  return
