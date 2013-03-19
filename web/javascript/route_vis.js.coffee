@@ -14,7 +14,7 @@ window.show_ts = (data_stops) ->
   height = 300 - margin.top - margin.bottom
   bus_color = 'steel-blue'
 
-  # if departure time is not defined, the default is 15 seconds after arrival
+  # if departure time is not defined, the default is 30 seconds after arrival
   d.time_departure or= d.time + 30 for d in data_stops
 
 
@@ -84,6 +84,8 @@ window.show_ts = (data_stops) ->
     .nodes(data_passengers)
     .links([])
     .gravity(0)
+    .friction(0.2)
+    .charge(-80)
     .size([svg_route.width, svg_route.height])
     .on('tick', tick_fn)
     
@@ -131,7 +133,7 @@ window.show_ts = (data_stops) ->
       stop_number: stop_number
       # centered horizontally on the foci, but with some scatter to either side 
       x: xScale(xVal(data_stops[stop_number])) + (Math.random() - 0.5) * width / data_stops.length
-      y: Math.random() * height
+      y: getRandomRange(yPos - height/4, yPos + height/4)
     
     redraw_passengers()
 
