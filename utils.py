@@ -1,4 +1,6 @@
 import json
+from calendar import timegm
+
 
 def handler(obj):
     if hasattr(obj, 'isoformat'):
@@ -13,4 +15,8 @@ def df_to_json(df, filename=''):
     if filename:
         with open(filename, 'w+') as f: f.write(json.dumps(x, default=handler))
     return x
-    
+
+
+def unixtime(dt):
+    '''convert a Datetime to a unix timestamp'''
+    return timegm(dt.timetuple())
