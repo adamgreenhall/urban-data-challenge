@@ -4,9 +4,6 @@ import topojson
 import utils
 import json
 import sys
-from IPython.core import ultratb
-sys.excepthook = ultratb.FormattedTB(mode='Verbose',
-     color_scheme='Linux', call_pdb=1)
      
 city = 'san-francisco'
 
@@ -63,4 +60,4 @@ for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
     
     with open(filename, 'w+') as f:
         print filename
-        json.dumps(trips_json, f)
+        f.write(json.dumps(trips_json))
