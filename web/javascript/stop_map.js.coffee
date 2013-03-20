@@ -1,5 +1,5 @@
 # define the city 
-city = "san-francisco"
+city = "geneva" #"san-francisco"
 
 
 projection = (x) ->
@@ -60,7 +60,6 @@ ts_load_requests = []
 route_click = (d) -> 
   route = d3.select(this)
   id_route = d.properties.id_route
-  console.log(d.properties)
   d3.select('#route_vis_panel > .route_number').text(id_route)
   d3.select('#route_vis_panel > .route_name').text(d.properties.name_route)
 

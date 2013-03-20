@@ -1,5 +1,12 @@
 import json
 from calendar import timegm
+import sys
+from IPython.core import ultratb
+from ipdb import set_trace
+
+def ipy_on_exception():
+    sys.excepthook = ultratb.FormattedTB(mode='Verbose',
+        color_scheme='Linux', call_pdb=1)
 
 
 def handler(obj):
