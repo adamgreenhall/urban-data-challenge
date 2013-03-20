@@ -1,9 +1,9 @@
-window.show_ts = (data_stops) ->
+window.show_ts = (data_stops, data_stop_locations) ->
   xVal = (d) -> d.distance
   tVal = (d) -> d.time
   tDepartureVal = (d) -> d.time_departure
   rVal = (d) -> d.count  # passenger count
-  
+  console.log('timeseries', data_stops)
   margin =
     top: 20
     right: 20
@@ -16,7 +16,6 @@ window.show_ts = (data_stops) ->
 
   # if departure time is not defined, the default is 30 seconds after arrival
   d.time_departure or= d.time + 30 for d in data_stops
-
 
   svg_route = d3.select('#route_vis').append('svg').attr
     width: width + margin.left + margin.right

@@ -57,11 +57,11 @@ route_mouseout = (d) ->
 
 ts_load_requests = []
 
-route_click = (d) -> 
+route_click = (d, stops) -> 
   route = d3.select(this)
   id_route = d.properties.id_route
-  d3.select('#route_vis_panel > .route_number').text(id_route)
-  d3.select('#route_vis_panel > .route_name').text(d.properties.name_route)
+  # d3.select('#route_vis_panel > .route_number').text(id_route)
+  d3.select('#route_name').text(d.properties.name_route)
 
   # clear out any existing visualizations
   d3.selectAll('#route_vis > svg').remove()
@@ -74,7 +74,7 @@ route_click = (d) ->
   # TODO - only have SF #41 defined for now 
   id_route = 41
   ts_load_requests.push(
-    d3.json("/data/" + city + '/timeseries/' + id_route + '.json', show_ts)
+    d3.json("/data/" + city + '/timeseries/' + id_route + '.json', (data) -> show_ts(data, stops))
   )
  
   # #fake some data and show that instead
@@ -119,6 +119,7 @@ bounds = `undefined`
 
 
 d3.json "/data/" + city + "/stops.json", (stops) ->
+  console.log('stops', stops)
   stop_coordinates = topojson.object(stops,
     type: "MultiPoint"
     coordinates: stops.objects.stops.geometries.map((d) -> d.coordinates)
@@ -154,4 +155,8 @@ d3.json "/data/" + city + "/stops.json", (stops) ->
       )
       .on("mouseover", route_mouseover)
       .on("mouseout", route_mouseout)
-      .on("click", route_click)
+      .on("click", (d) -> route_click(d, stops))
+      
+    # start the thing off with a default route
+    route_click(routes.objects.routes.geometries[0], stops)
+    return 

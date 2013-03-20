@@ -21,13 +21,14 @@
         %p
           %span.route-name{:style => "font-weight: bold"}
           %span.stop-name
-      .row
-        #route_vis_panel
-          %h1.route_number
-          %h2.route_name
-    
-          #route_vis
       .row 
-        #map    
+        #route_vis_panel
+          %h3#route_question
+            %span what is riding
+            %span#route_name line 5
+            %span like at
+            %span.time 5pm on a Sunday?
+          #route_vis
+        #map
     
     %script{:src => "/javascript/stop_map.js"}
