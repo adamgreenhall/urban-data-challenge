@@ -1,6 +1,11 @@
-window.show_ts = (data_stops) ->
+window.show_ts = (error, data_daily) ->
+  if error
+    console.log(error.statusText)
+    # TODO - warn user
+    return
+
   xVal = (d) -> d.distance
-  tVal = (d) -> d.time
+  tVal = (d) -> d.time_arrival
   tDepartureVal = (d) -> d.time_departure
   rVal = (d) -> d.count  # passenger count
   
@@ -14,8 +19,13 @@ window.show_ts = (data_stops) ->
   height = 300 - margin.top - margin.bottom
   bus_color = 'steel-blue'
 
+  # HACK
+  # TODO - add time selection and multple buses on the same line
+  data_stops = data_daily[0].stops
+  console.log(data_stops)
+  
   # if departure time is not defined, the default is 30 seconds after arrival
-  d.time_departure or= d.time + 30 for d in data_stops
+  d.time_departure or= tVal(d) + 30 for d in data_stops
 
 
   svg_route = d3.select('#route_vis').append('svg').attr
@@ -28,6 +38,7 @@ window.show_ts = (data_stops) ->
   Tmax = 20000
   # a linear scale mapping the time difference (in UTC seconds)
   # to the length of the visualization playback (2sec)
+  
   tScale = d3.scale.linear()
     .domain([0, d3.max(data_stops, tVal) - d3.min(data_stops, tVal)])
     .range([0, Tmax])

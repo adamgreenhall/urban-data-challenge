@@ -60,6 +60,7 @@ ts_load_requests = []
 route_click = (d) -> 
   route = d3.select(this)
   id_route = d.properties.id_route
+  console.log(d.properties)
   d3.select('#route_vis_panel > .route_number').text(id_route)
   d3.select('#route_vis_panel > .route_name').text(d.properties.name_route)
 
@@ -71,24 +72,14 @@ route_click = (d) ->
   ts_load_requests = []
 
   # load up the timeseries data for the route
-  # TODO - only have SF #41 defined for now 
-  id_route = 41
+  # TODO - date picker
+  # id_route = 41
+  date = '20121003'
+  filename = "/data/" + city + '/timeseries/' + date + '_' + id_route + '.json'
+  console.log('loading', filename)
   ts_load_requests.push(
-    d3.json("/data/" + city + '/timeseries/' + id_route + '.json', show_ts)
+    d3.json(filename, show_ts)
   )
- 
-  # #fake some data and show that instead
-  # data = [
-  #   time: 0
-  #   x: 10
-  # ,
-  #   time: 2
-  #   x: 150
-  # ,
-  #   time: 5
-  #   x: 450
-  # ]  
-  # show_ts(data)
 
 
 centers =

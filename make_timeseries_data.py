@@ -3,7 +3,7 @@ import numpy as np
 import topojson
 import utils
 import json
-import sys
+# from ipdb import set_trace
      
 city = 'san-francisco'
 
@@ -19,6 +19,7 @@ stop_properties = pd.DataFrame(
     ).set_index('id_stop')[['latitude', 'longitude']]
     
 df = df.join(stop_properties, on='id_stop')
+
 
 # SF has duplicate first stops with zero counts 
 df = df.reset_index().groupby(
