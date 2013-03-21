@@ -109,7 +109,6 @@ bounds = `undefined`
 
 
 d3.json "/data/" + city + "/stops.json", (stops) ->
-  console.log('stops', stops)
   stop_coordinates = topojson.object(stops,
     type: "MultiPoint"
     coordinates: stops.objects.stops.geometries.map((d) -> d.coordinates)
