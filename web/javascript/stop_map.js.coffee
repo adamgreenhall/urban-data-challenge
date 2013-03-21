@@ -1,5 +1,5 @@
 # define the city 
-city = "geneva" #"san-francisco"
+city = "san-francisco"
 
 
 projection = (x) ->
@@ -72,7 +72,7 @@ route_click = (d) ->
 
   # load up the timeseries data for the route
   # TODO - date picker
-  # id_route = 41
+  id_route = 49
   date = '20121003'
   filename = "/data/" + city + '/timeseries/' + date + '_' + id_route + '.json'
   console.log('loading', filename)
