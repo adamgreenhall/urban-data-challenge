@@ -213,7 +213,6 @@ window.show_ts = (error, data_daily) ->
       .duration(duration_motion)
       .attr
         cx: xScale(xVal(data_stops[stop_number]))
-        r: rScale(rVal(data_stops[stop_number]))
     
     # after transition to the stop is done
     timer_fn = () ->  
@@ -223,6 +222,12 @@ window.show_ts = (error, data_daily) ->
         
         # passengers get on
         show_boarding_passengers(stop_number, duration_stopped)
+        
+        bus.transition()
+          .duration(duration_stopped)
+          .attr
+            r: rScale(rVal(data_stops[stop_number]))
+
         
         # pause for the time the bus spends at the stop.
         # and then move the bus to the next stop
