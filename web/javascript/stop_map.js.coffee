@@ -57,11 +57,11 @@ route_mouseout = (d) ->
 
 ts_load_requests = []
 
-route_click = (d) -> 
+route_click = (d, stops) -> 
   route = d3.select(this)
   id_route = d.properties.id_route
-  d3.select('#route_vis_panel > .route_number').text(id_route)
-  d3.select('#route_vis_panel > .route_name').text(d.properties.name_route)
+  # d3.select('#route_vis_panel > .route_number').text(id_route)
+  d3.select('#route_name').text(d.properties.name_route)
 
   # clear out any existing visualizations
   d3.selectAll('#route_vis > svg').remove()
@@ -77,27 +77,11 @@ route_click = (d) ->
   filename = "/data/" + city + '/timeseries/' + date + '_' + id_route + '.json'
   console.log('loading', filename)
   ts_load_requests.push(
-    d3.json(filename, show_ts)
+    d3.json(filename, (error, data) -> show_ts(error, data, stops))
   )
 
 
-centers =
-  "san-francisco": [37.783333, -122.416667]
-  geneva: [46.2, 6.15]
-  zurich: [47.366667, 8.55]
 
-
-# set up the leaflet map
-map = L.map("map", {
-  center: centers[city],
-  zoom: 12})
-  .addLayer(new L.tileLayer("http://{s}.tile.cloudmade.com/62541519723e4a6abd36d8a4bb4d6ac3/998/256/{z}/{x}/{y}.png", {
-    attribution: "",
-    maxZoom: 16
-  }))
-  
-svg_map = d3.select(map.getPanes().overlayPane).append("svg")
-g = svg_map.append("g").attr("class", "leaflet-zoom-hide")
 path = d3.geo.path().projection(projection)
 tooltip = d3.select("#tooltip")
 
@@ -109,6 +93,7 @@ bounds = `undefined`
 
 
 d3.json "/data/" + city + "/stops.json", (stops) ->
+  console.log('stops', stops)
   stop_coordinates = topojson.object(stops,
     type: "MultiPoint"
     coordinates: stops.objects.stops.geometries.map((d) -> d.coordinates)
@@ -144,4 +129,8 @@ d3.json "/data/" + city + "/stops.json", (stops) ->
       )
       .on("mouseover", route_mouseover)
       .on("mouseout", route_mouseout)
-      .on("click", route_click)
+      .on("click", (d) -> route_click(d, stops))
+      
+    # start the thing off with a default route
+    route_click(routes.objects.routes.geometries[0], stops)
+    return 

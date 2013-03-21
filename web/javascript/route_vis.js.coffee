@@ -1,14 +1,13 @@
-window.show_ts = (error, data_daily) ->
+window.show_ts = (error, data_daily_trips, data_stop_locations) ->
   if error
     console.log(error.statusText)
     # TODO - warn user
     return
-
   xVal = (d) -> d.distance
   tVal = (d) -> d.time_arrival
   tDepartureVal = (d) -> d.time_departure
   rVal = (d) -> d.count  # passenger count
-  
+  console.log('timeseries', data_stops)
   margin =
     top: 20
     right: 20
@@ -21,12 +20,11 @@ window.show_ts = (error, data_daily) ->
 
   # HACK
   # TODO - add time selection and multple buses on the same line
-  data_stops = data_daily[0].stops
-  console.log(data_stops)
+  data_stops = data_daily_trips[0].stops
+  console.log(data_daily_trips)
   
   # if departure time is not defined, the default is 30 seconds after arrival
   d.time_departure or= tVal(d) + 30 for d in data_stops
-
 
   svg_route = d3.select('#route_vis').append('svg').attr
     width: width + margin.left + margin.right
