@@ -81,7 +81,23 @@ route_click = (d, stops) ->
   )
 
 
+centers =
+  "san-francisco": [37.783333, -122.416667]
+  geneva: [46.2, 6.15]
+  zurich: [47.366667, 8.55]
 
+
+# set up the leaflet map
+map = L.map("map", {
+  center: centers[city],
+  zoom: 12})
+  .addLayer(new L.tileLayer("http://{s}.tile.cloudmade.com/62541519723e4a6abd36d8a4bb4d6ac3/998/256/{z}/{x}/{y}.png", {
+    attribution: "",
+    maxZoom: 16
+  }))
+  
+svg_map = d3.select(map.getPanes().overlayPane).append("svg")
+g = svg_map.append("g").attr("class", "leaflet-zoom-hide")
 path = d3.geo.path().projection(projection)
 tooltip = d3.select("#tooltip")
 
