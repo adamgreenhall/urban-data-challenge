@@ -1,0 +1,5 @@
+pandas==0.10.1
+ipython==0.13.1
+h5py==2.1.1
+ipdb==0.7
+tables==2.4.0

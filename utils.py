@@ -1,3 +1,5 @@
+import numpy as np
+import pandas as pd
 import json
 from calendar import timegm
 import sys
@@ -6,7 +8,7 @@ from ipdb import set_trace
 
 def ipy_on_exception():
     sys.excepthook = ultratb.FormattedTB(mode='Verbose',
-        color_scheme='Linux', call_pdb=1)
+        color_scheme='Linux', call_pdb=1, include_vars=1)
 
 
 def handler(obj):
@@ -27,3 +29,7 @@ def df_to_json(df, filename=''):
 def unixtime(dt):
     '''convert a Datetime to a unix timestamp'''
     return timegm(dt.timetuple())
+    
+def native_types(obj):
+    try: return np.asscalar(obj)
+    except: return obj

@@ -27,7 +27,7 @@ def properties(json, obj_name):
 def get_linear_dist(df):
     '''convert lat long to a linear distance travelled since start'''
     LL = ['latitude', 'longitude']
-    latlng = df.reset_index()[LL].fillna(0)
+    latlng = df.reset_index()[LL].fillna(0).copy()
     latlng['distance'] = 0.0
     for i, coords in latlng.iterrows():
         if i == 0: continue
