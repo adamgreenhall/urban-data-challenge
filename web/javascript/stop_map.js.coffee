@@ -1,151 +1,167 @@
-# define the city 
-city = "san-francisco"
+class LeafletMap
+  CITY_CENTER =
+    "san-francisco": [37.783333, -122.416667]
+    geneva: [46.2, 6.15]
+    zurich: [47.366667, 8.55]
 
+  constructor: (@mapContainerId, @city) ->
+    @_generateMap()
+    @_generateSvg()
+    @_generateMapData()
 
-projection = (x) ->
-  # convert back to lat-long coordinates
-  pt = map.latLngToLayerPoint(new L.LatLng(x[1], x[0]))
-  return [pt.x, pt.y]
+    @_loadData()
 
-map_redraw = ->
-  # redraw the d3 objects on the map on zoom/pan
-  return if bounds is `undefined`
-  bottomLeft = projection(bounds[0])
-  topRight = projection(bounds[1])
-  svg_map
-    .attr
-      width: topRight[0] - bottomLeft[0]
-      height: bottomLeft[1] - topRight[1]
-    .style
-      "margin-left": bottomLeft[0] + "px"
-      "margin-top": topRight[1] + "px"
-      
-  g.attr("transform", translate(-bottomLeft[0], -topRight[1]))
-  
-  if bus_stops isnt `undefined`
-    bus_stops.attr
-      cx: (d, i) -> projection(stop_coordinates[i])[0]
-      cy: (d, i) -> projection(stop_coordinates[i])[1]
+  # Convert back to lat-long coordinates
+  projection: (x) ->
+    point = @_map.latLngToLayerPoint(new L.LatLng(x[1], x[0]))
+    [point.x, point.y]
 
-  if bus_routes isnt `undefined`
-    bus_routes.attr("d", path)
+  redraw: ->
+    return if @_bounds is `undefined`
 
+    bottomLeft = @projection(@_bounds[0])
+    topRight   = @projection(@_bounds[1])
 
-bus_stop_mouseover = (d) ->
-    dot = d3.select(this)
+    @_svgMap
+      .attr
+        width:  topRight[0] - bottomLeft[0]
+        height: bottomLeft[1] - topRight[1]
+      .style
+        "margin-left": "#{bottomLeft[0]}px"
+        "margin-top":  "#{topRight[1]}px"
+
+    @_g.attr("transform", translate(-bottomLeft[0], -topRight[1]))
+
+    if @_busStops isnt `undefined`
+      @_busStops.attr
+        cx: (d, i) => @projection(@_stopCoordinates[i])[0]
+        cy: (d, i) => @projection(@_stopCoordinates[i])[1]
+
+    if @_busRoutes isnt `undefined`
+      @_busRoutes.attr("d", @_path)
+
+    return
+
+  _generateMap: ->
+    @_map = L.map(@mapContainerId, {
+      center: CITY_CENTER[@city],
+      zoom:   13}).addLayer(new L.tileLayer("http://{s}.tile.cloudmade.com/62541519723e4a6abd36d8a4bb4d6ac3/998/256/{z}/{x}/{y}.png", {
+        attribution: "",
+        maxZoom: 16
+    }))
+    return
+
+  _generateSvg: ->
+    __this = @
+    @_svgMap     = d3.select(@_map.getPanes().overlayPane).append("svg")
+    @_g          = @_svgMap.append("g").attr("class", "leaflet-zoom-hide")
+    @_path       = d3.geo.path().projection((x) -> __this.projection(x))
+    @_tooltip    = d3.select("#tooltip")
+    return
+
+  _colorScale: (d) ->
+    if @__colorScale is `undefined`
+      @__colorScale = d3.scale.category20()
+
+    @__colorScale(d)
+
+  _generateMapData: ->
+    @_busRoutes       = `undefined`
+    @_busStops        = `undefined`
+    @_stopCoordinates = `undefined`
+    @_bounds          = `undefined`
+    @_remoteRequests  = []
+    return
+
+  _busStopMouseover: (elem, d) ->
+    dot = d3.select(elem)
     dot.attr("r", 10).classed("hover", true)
     xPosition = parseFloat(dot.attr("cx"))
     yPosition = parseFloat(dot.attr("cy"))
-    tooltip.style
+    @_tooltip.style
       left: (xPosition + 10) + "px"
       top: (yPosition + 10) + "px"
-    tooltip.select(".route-name").text(d.properties.name_route)
-    tooltip.select(".stop-name").text(d.properties.name_stop)
-    tooltip.classed("hidden", false)
+    @_tooltip.select(".route-name").text(d.properties.name_route)
+    @_tooltip.select(".stop-name").text(d.properties.name_stop)
+    @_tooltip.classed("hidden", false)
 
-bus_stop_mouseout = (d) ->
-    d3.select(this).attr("r", 5).classed "hover", false
-    tooltip.classed "hidden", true
-  
-route_mouseover = (d) ->
-  route = d3.select(this)
-  route.classed "highlighted", true
+  _busStopMouseout: (elem, d) ->
+    d3.select(elem).attr("r", 5).classed "hover", false
+    @_tooltip.classed "hidden", true
 
-route_mouseout = (d) ->      
-  route = d3.select(this)
-  route.classed "highlighted", false
+  _routeMouseover: (elem, d) ->
+    route = d3.select(elem)
+    route.classed "highlighted", true
 
-ts_load_requests = []
+  _routeMouseout: (elem, d) ->
+    route = d3.select(elem)
+    route.classed "highlighted", false
 
-route_click = (d, stops) -> 
-  route = d3.select(this)
-  id_route = d.properties.id_route
-  # d3.select('#route_vis_panel > .route_number').text(id_route)
-  d3.select('#route_name').text(d.properties.name_route)
+  _routeClick: (elem, d, stops) ->
+    route = d3.select(elem)
+    id_route = d.properties.id_route
+    d3.select('#route_name').text(d.properties.name_route)
 
-  # clear out any existing visualizations
-  d3.selectAll('#route_vis > svg').remove()
-  
-  # stop loading any other route data
-  req.abort() for req in ts_load_requests
-  ts_load_requests = []
+    # clear out any existing visualizations
+    d3.selectAll('#route_vis > svg').remove()
 
-  # load up the timeseries data for the route
-  # TODO - date picker
-  id_route = 49
-  date = '20121003'
-  filename = "/data/" + city + '/timeseries/' + date + '_' + id_route + '.json'
-  console.log('loading', filename)
-  ts_load_requests.push(
-    d3.json(filename, (error, data) -> show_ts(error, data, stops))
-  )
+    # stop loading any other route data
+    req.abort() for req in @_remoteRequests
+    @_remoteRequests = []
 
+    # load up the timeseries data for the route
+    # TODO - date picker
+    date = '20121003'
+    filename = "/data/" + @city + '/timeseries/' + date + '_' + id_route + '.json'
+    console.log('loading', filename)
+    @_remoteRequests.push(
+      d3.json(filename, (error, data) -> show_ts(error, data, stops))
+    )
 
-centers =
-  "san-francisco": [37.783333, -122.416667]
-  geneva: [46.2, 6.15]
-  zurich: [47.366667, 8.55]
+  _loadData: ->
+    d3.json "/data/#{@city}/stops.json", (stops) =>
+      __this = @
+      @_stopCoordinates = topojson.object(stops,
+        type: "MultiPoint"
+        coordinates: stops.objects.stops.geometries.map((d) -> d.coordinates)
+      ).coordinates
 
+      @_busStops = @_g.selectAll("circle")
+        .data(stops.objects.stops.geometries).enter()
+        .append("circle")
+          .attr("r", 4)
+          .on("mouseover", (d) -> __this._busStopMouseover(this, d))
+          .on("mouseout",  (d) -> __this._busStopMouseout(this, d))
 
-# set up the leaflet map
-map = L.map("map", {
-  center: centers[city],
-  zoom: 12})
-  .addLayer(new L.tileLayer("http://{s}.tile.cloudmade.com/62541519723e4a6abd36d8a4bb4d6ac3/998/256/{z}/{x}/{y}.png", {
-    attribution: "",
-    maxZoom: 16
-  }))
-  
-svg_map = d3.select(map.getPanes().overlayPane).append("svg")
-g = svg_map.append("g").attr("class", "leaflet-zoom-hide")
-path = d3.geo.path().projection(projection)
-tooltip = d3.select("#tooltip")
+      @_bounds = [
+        [
+          d3.min(@_stopCoordinates, (d) -> d[0]),
+          d3.min(@_stopCoordinates, (d) -> d[1])
+        ],
+        [
+          d3.max(@_stopCoordinates, (d) -> d[0]),
+          d3.max(@_stopCoordinates, (d) -> d[1])
+        ]
+      ]
 
+      @_map.on("viewreset", () -> __this.redraw())
+      @redraw()
 
-bus_routes = `undefined`
-bus_stops = `undefined`
-stop_coordinates = `undefined`
-bounds = `undefined`
+      d3.json "/data/#{@city}/routes.json", (routes) =>
+        @_busRoutes = @_g.selectAll("path.bus-route")
+          .data(topojson.object(routes, routes.objects.routes).geometries).enter()
+          .append("path").attr(
+            class: "bus-route"
+            d: @_path
+          )
+          .style("stroke", (d) -> __this._colorScale(d.properties.id_route))
+          .on("mouseover", (d) -> __this._routeMouseover(this, d))
+          .on("mouseout", (d) -> __this._routeMouseout(this, d))
+          .on("click", (d) -> __this._routeClick(this, d, stops))
 
+        # start the thing off with a default route
+        @_routeClick(null, routes.objects.routes.geometries[0], stops)
+        return
+      return
 
-d3.json "/data/" + city + "/stops.json", (stops) ->
-  stop_coordinates = topojson.object(stops,
-    type: "MultiPoint"
-    coordinates: stops.objects.stops.geometries.map((d) -> d.coordinates)
-  ).coordinates
-  
-  bus_stops = g.selectAll("circle")
-    .data(stops.objects.stops.geometries).enter()
-    .append("circle")
-      .attr("r", 3)
-      .on("mouseover", bus_stop_mouseover)
-      .on("mouseout", bus_stop_mouseout)
-  
-  bounds = [
-    [
-      d3.min(stop_coordinates, (d) -> d[0]),
-      d3.min(stop_coordinates, (d) -> d[1])
-    ],
-    [
-      d3.max(stop_coordinates, (d) -> d[0]),
-      d3.max(stop_coordinates, (d) -> d[1])
-    ]
-  ]
-
-  map.on("viewreset", map_redraw)
-  map_redraw()
-  
-  d3.json "/data/" + city + "/routes.json", (routes) ->
-    bus_routes = g.selectAll("path.bus-route")
-      .data(topojson.object(routes, routes.objects.routes).geometries).enter()
-      .append("path").attr(
-        class: "bus-route"
-        d: path
-      )
-      .on("mouseover", route_mouseover)
-      .on("mouseout", route_mouseout)
-      .on("click", (d) -> route_click(d, stops))
-      
-    # start the thing off with a default route
-    route_click(routes.objects.routes.geometries[0], stops)
-    return 
+new LeafletMap "map", "san-francisco"
