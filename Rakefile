@@ -15,5 +15,11 @@ end
 
 
 task :dev_server do
-  `cd web; stasis -d 3000`
+  `cd web`
+  # stasis gets really slow when it copies all the json every time you update
+  # instead - soft link the data to the public directory
+  'cd public; ln -s ../data/ .'
+  `cd ..`
+  # and run stasis on a select group of files
+  `stasis -d 3000 -o *.html* javascript/*.js* styles/*.css* img/*`
 end
