@@ -8,10 +8,8 @@ window.show_ts = (error, data_daily_trips, data_stop_locations) ->
   tDepartureVal = (d) -> d.time_departure
   rVal = (d) -> d.count  # passenger count
   
-  tz_offset = new Date(2012, 10, 1).getTimezoneOffset() / 60
   time_formatter = (t) ->
-    # TODO - check that this tz hack works for Switzerland
-    d3.time.format('%I:%M%p on a %A ')(new Date(t * 1000 + tz_offset * 3600 * 1000))
+    d3.time.format('%I:%M%p on a %A ')(new Date(t * 1000))
   # setup container
   margin =
     top: 20
