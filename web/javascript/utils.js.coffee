@@ -1,5 +1,5 @@
 window.translate = (x, y) ->
-  "translate(" + x + "," + y + ")"
+  "translate(#{x}, #{y})"
 
 
 window.getRandomRange = (min, max) ->
