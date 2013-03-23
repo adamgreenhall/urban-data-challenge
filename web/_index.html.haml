@@ -1,0 +1,32 @@
+%head
+  %title Passengers
+  %link{:href => "/styles/leaflet.css", :rel => "stylesheet"}/
+  %link{:href => "/styles/vis.css", :rel => "stylesheet"}/
+  %link{:href => "/styles/bootstrap.min.css", :rel => "stylesheet"}/
+  
+  %script{:src => "/javascript/utils.js", :type => "text/javascript"}
+  %script{:src => "/javascript/jquery-1.9.1.min.js", :type => "text/javascript"}
+  %script{:src => "/javascript/leaflet.js", :type => "text/javascript"}
+  %script{:src => "/javascript/d3.js", :type => "text/javascript"}
+  %script{:src => "/javascript/topojson.js", :type => "text/javascript"}
+  %script{:src => "/javascript/bootstrap.js", :type => "text/javascript"}
+  %script{:src => "/javascript/route_vis.js", :type => "text/javascript"}
+  %meta{:content=>"width=device-width, initial-scale=1.0", :name=>"viewport"}
+%body
+  .container
+    #tooltip.hidden
+      %p
+        %span.route-name{:style => "font-weight: bold"}
+        %span.stop-name
+    .row 
+      #route_vis_panel
+        %h3#route_question
+          %span what is riding
+          %span#route_name line 5
+          %span like at
+          %span#time_display 5pm on a Sunday?
+        #route_vis
+      #map
+  :javascript
+    city_name = "#{city_name}"
+  %script{:src => "/javascript/stop_map.js"}

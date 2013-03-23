@@ -164,4 +164,4 @@ class LeafletMap
         return
       return
 
-new LeafletMap "map", "san-francisco"
+new LeafletMap "map", window.city_name
