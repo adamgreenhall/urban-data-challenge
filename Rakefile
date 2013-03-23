@@ -1,6 +1,6 @@
 #!/usr/bin/env rake
 
-cities = ['san-francsico', 'geneva', 'zurich']
+cities = ['san-francisco', 'geneva', 'zurich']
 
 
 task :install_env do
