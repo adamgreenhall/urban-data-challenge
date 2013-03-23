@@ -22,7 +22,7 @@ timezones = {
 
 # load in the timeseries data in the common format
 print('load common data format for {}'.format(city))
-index_cols = ['date', 'id_route', 'id_trip']
+index_cols = ['date', 'id_route', 'id_trip', 'trip_direction']
 df = pd.read_csv('data/common_format/{}.csv'.format(city), 
     parse_dates=[0]).set_index(index_cols)
 
@@ -52,7 +52,7 @@ with open('web/data/{}/stops.json'.format(city), 'r') as f:
 stop_properties = pd.DataFrame(
     topojson.properties(stops, 'stops')) \
     .set_index('id_stop')[['latitude', 'longitude']] \
-    .groupby(level=0).first()  
+    .groupby(level=0).first()
 # join lat/long to the timeseries data
 df = df.join(stop_properties, on='id_stop')
 
@@ -67,20 +67,20 @@ for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
     
     # get the trip order correct
     # trips should be ordered by their first arrival time
-    id_trip_ordered = trips.groupby(level='id_trip').time_arrival.min().order().index
-    
+    id_trip_ordered = trips.groupby(level=['id_trip', 'trip_direction']).time_arrival.min().order().index
+
     # nest by trip
     trips_json = []
-    for id_trip in id_trip_ordered:
+    for id_trip, trip_direction in id_trip_ordered:
         
-        trip = trips.xs(id_trip, level='id_trip')\
+        trip = trips.xs(id_trip, level='id_trip').xs(trip_direction, level='trip_direction')\
             .reset_index(drop=True)\
             .sort('time_arrival')\
             .set_index('id_stop')
 
         # convert lat/long to cummulative km distance from trip start point
-        trip['distance'] = topojson.get_linear_dist(trip)
-        trip = trip.drop(['latitude', 'longitude'], axis=1)
+        # trip['distance'] = topojson.get_linear_dist(trip)
+        # trip = trip.drop(['latitude', 'longitude'], axis=1)
 
         # TODO - bad data correction on counts
         # TODO - bad data correction on speed
@@ -90,6 +90,7 @@ for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
             'date': date.strftime('%Y%m%d'),
             'id_route': str(id_route),
             'id_trip': str(id_trip),
+            'trip_direction': int(trip_direction),
             'stops': utils.df_to_json(trip)
         }
         trips_json.append(trip_json)
