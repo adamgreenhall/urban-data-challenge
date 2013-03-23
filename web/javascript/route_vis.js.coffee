@@ -3,7 +3,6 @@ window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
     console.log(error.statusText)
     # TODO - warn user
     return
-  xVal = (d) -> d.distance
   tVal = (d) -> d.time_arrival
   tDepartureVal = (d) -> d.time_departure
   rVal = (d) -> d.count  # passenger count
@@ -32,9 +31,6 @@ window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
   tScale = d3.scale.linear()
     .domain(nested_min_max(data_daily_trips, 'stops', tVal))
     .range([0, Tmax])
-  xScale = d3.scale.linear()
-    .domain(nested_min_max(data_daily_trips, 'stops', xVal))
-    .range([margin.left, width - margin.right])
   yScale = d3.scale.linear()
     .domain([0, 1])
     .range([height - margin.top, 0 + margin.bottom])
@@ -51,47 +47,64 @@ window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
   line_maker = d3.svg.line()
     .x((d) -> d)
     .y((d) -> yPos)
+      
+  # FIXME!! - routes are bidirectional!!!!!
+
+  # measure the stop distances in d3
+  all_stop_ids = _.unique _.flatten data_daily_trips.map (d) ->
+    d.stops.map (s) -> s.id_stop
+  
+  data_stop_positions = {}
+  all_stop_ids.forEach (sid, i) ->
+    circ = d3.select("circle.bus-stop-#{sid}")
+    data_stop_positions[sid] = 
+      id_stop: sid
+      x: +circ.attr('cx') 
+      y: +circ.attr('cy')
+    return
+  
+  route_path = d3.select("path.bus-route-#{data_daily_trips[0].id_route}").node()
+  calcDistanceAlongPath(d3.values(data_stop_positions), route_path)
+  
+  # define xVal to lookup the distance from the stops data
+  xVal = (d) -> 
+    data_stop_positions[d.id_stop].distance
+  xScale = d3.scale.linear()
+    .domain(d3.extent(d3.values(data_stop_positions), (d) -> d.distance))
+    .range([margin.left, width - margin.right])
+
+
+    
+  stops = g.selectAll("circle.bus-stop")
+    .data(d3.values(data_stop_positions)).enter()
+    .append("circle").attr
+      class: (d) -> "bus-stop bus-stop-#{d.id_stop}"
+      r: 4
+      cx: (d) -> xScale(d.distance)
+      cy: yPos
+
+  # add mouse interaction 
+  vis_highlight_stop = (d) -> 
+    map._g.select("circle.bus-stop-#{d.id_stop}")
+      .moveToFront()
+      .attr('r', map.busStopRadius * 3)
+      .classed('highlighted', true)
+      
+  vis_unhighlight_stop = (d) ->
+    map._g.select("circle.bus-stop-#{d.id_stop}")
+      .attr('r', map.busStopRadius)
+      .classed('highlighted', false)
+
+  stops
+    .on('mouseover', vis_highlight_stop)
+    .on('mouseout', vis_unhighlight_stop)
+    
   line = g.append("path")
     .datum(xScale.range())
     .attr
       d: line_maker
-    class: "bus-line"
-      
-  ## PENDING - try to measure the stop distances in d3
-  ## see: http://bl.ocks.org/duopixel/3824661
-  # route_path = d3.select("path.bus-route-#{data_daily_trips[0].id_route}").node()
-  # 
-  # id_stops = data_daily_trips[0].stops.map((d) -> d.id_stop)
-  # stop_distances = {}
-  # 
-  # id_stops.forEach (sid, i) ->
-  #   circ = d3.select('circle.bus-stop-'+sid)
-  #   stop_distances[sid] = get_path_distance(route_path, circ.attr('cx'), circ.attr('cy'))
-  # debugger
+      class: "bus-line"
 
-  # FIXME!! - routes are bidirectional!!!!!
-  # TODO - need a unique list of stops over all the trips, not just the first trip
-
-  # all_stops = _.flatten data_daily_trips.map (d) ->
-  #   d.stops.map (s) ->
-  #     id_stop: s.id_stop
-  #     distance: s.distance
-  # 
-  # all_stop_ids = _.unique(all_stops.map (s) -> s.id_stop)
-
-  all_stops_data = data_daily_trips[0].stops.map (d) -> 
-    distance: d.distance
-    id_stop: d.id_stop
-    
-  debugger
-  stops = g.selectAll("circle.bus-stop")
-    .data(all_stops_data).enter()
-    .append("circle").attr
-      class: (d) -> "bus-stop bus-stop-#{d.id_stop}"
-      r: 4
-      cx: (d) -> xScale(xVal(d))
-      cy: yPos
-        
   # basic force layout
   force_layout = () -> 
     d3.layout.force()
@@ -105,7 +118,7 @@ window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
   data_daily_trips.forEach (data_trip, i) ->  
     data_trip.Tstart = tScale(d3.min(data_trip.stops, tVal))
     
-    # debugging HACK
+    # debugging HACK - only run 2 trips
     # return unless i<=1
     
     # TODO - might need to use setInterval, clearInterval to be able to cancel these 
@@ -265,6 +278,8 @@ window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
         if stop_number < (data_stops.length - 1)
           # update the clock display
           time_display.text(time_formatter(tVal(data_stops[stop_number])))
+          # update highlighting on map
+          vis_highlight_stop(data_stops[stop_number])
           # passengers get out
           show_departing_passengers(stop_number)
           # passengers get on
@@ -278,6 +293,7 @@ window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
           # pause for the time the bus spends at the stop.
           # and then move the bus to the next stop
           move_to_next_fn = () ->
+            vis_unhighlight_stop(data_stops[stop_number])
             move_bus(stop_number + 1)
             return true
           d3.timer(move_to_next_fn, duration_stopped)

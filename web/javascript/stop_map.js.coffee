@@ -10,7 +10,8 @@ class LeafletMap
     @_generateMapData()
 
     @_loadData()
-
+    @busStopRadius = 3
+    
   # Convert back to lat-long coordinates
   projection: (x) ->
     point = @_map.latLngToLayerPoint(new L.LatLng(x[1], x[0]))
@@ -131,7 +132,7 @@ class LeafletMap
         .data(stops.objects.stops.geometries).enter()
         .append("circle")
           .attr
-            r: 4
+            r: @busStopRadius
             class: (d) -> "bus-stop bus-stop-#{d.properties.id_stop}"
           .on("mouseover", (d) -> __this._busStopMouseover(this, d))
           .on("mouseout",  (d) -> __this._busStopMouseout(this, d))

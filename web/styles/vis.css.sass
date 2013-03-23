@@ -13,11 +13,14 @@
   #route_question
     padding-left: 50px
 
-circle
+circle.bus-stop
   fill: steelblue
-  fill-opacity: 0.7
+  fill-opacity: 0.8
   &:hover
     fill: black
+  &.highlighted
+    stroke: black
+    stroke-width: 1px
 
 path.bus-route
   fill: none
@@ -63,7 +66,7 @@ path.bus-route
       fill: grey
       fill-opacity: 0.7
 
-  line.bus-line
+  path.bus-line
     stroke: rgba(6, 120, 155, 0.8)
     fill: none
     stroke-width: 2px
