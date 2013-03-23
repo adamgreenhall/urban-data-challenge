@@ -97,7 +97,8 @@ class LeafletMap
     route = d3.select(elem)
     route.classed "highlighted", false
 
-  _routeClick: (elem, d, stops) ->
+  _routeClick: (elem, d, stops) =>
+    __this = @
     route = d3.select(elem)
     id_route = d.properties.id_route
     d3.select('#route_name').text(d.properties.name_route)
@@ -112,10 +113,10 @@ class LeafletMap
     # load up the timeseries data for the route
     # TODO - date picker
     date = '20121003'
-    filename = "/data/" + @city + '/timeseries/' + date + '_' + id_route + '.json'
+    filename = "/data/#{@city}/timeseries/#{date}_#{id_route}.json"
     console.log('loading', filename)
     @_remoteRequests.push(
-      d3.json(filename, (error, data) -> show_ts(error, data, stops))
+      d3.json(filename, (error, data) -> show_ts(error, data, stops, __this))
     )
 
   _loadData: ->
@@ -126,10 +127,12 @@ class LeafletMap
         coordinates: stops.objects.stops.geometries.map((d) -> d.coordinates)
       ).coordinates
 
-      @_busStops = @_g.selectAll("circle")
+      @_busStops = @_g.selectAll("circle.bus-stop")
         .data(stops.objects.stops.geometries).enter()
         .append("circle")
-          .attr("r", 4)
+          .attr
+            r: 4
+            class: (d) -> "bus-stop bus-stop-#{d.properties.id_stop}"
           .on("mouseover", (d) -> __this._busStopMouseover(this, d))
           .on("mouseout",  (d) -> __this._busStopMouseout(this, d))
 
@@ -151,7 +154,7 @@ class LeafletMap
         @_busRoutes = @_g.selectAll("path.bus-route")
           .data(topojson.object(routes, routes.objects.routes).geometries).enter()
           .append("path").attr(
-            class: "bus-route"
+            class: (d) -> "bus-route bus-route-#{d.properties.id_route}"
             d: @_path
           )
           .style("stroke", (d) -> __this._colorScale(d.properties.id_route))

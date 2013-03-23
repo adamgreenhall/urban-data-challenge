@@ -1,4 +1,4 @@
-window.show_ts = (error, data_daily_trips, data_stop_locations) ->
+window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
   if error
     console.log(error.statusText)
     # TODO - warn user
@@ -34,7 +34,7 @@ window.show_ts = (error, data_daily_trips, data_stop_locations) ->
     .range([0, Tmax])
   xScale = d3.scale.linear()
     .domain(nested_min_max(data_daily_trips, 'stops', xVal))
-    .range([0, width])
+    .range([margin.left, width - margin.right])
   yScale = d3.scale.linear()
     .domain([0, 1])
     .range([height - margin.top, 0 + margin.bottom])
@@ -48,22 +48,50 @@ window.show_ts = (error, data_daily_trips, data_stop_locations) ->
   color_filler = d3.scale.category20()
   
   # setup the route line and stops
-  line = g.append("line").attr
-    x1: xScale.range()[0]
-    x2: xScale.range()[1]
-    y1: yPos
-    y2: yPos
+  line_maker = d3.svg.line()
+    .x((d) -> d)
+    .y((d) -> yPos)
+  line = g.append("path")
+    .datum(xScale.range())
+    .attr
+      d: line_maker
     class: "bus-line"
       
+  ## PENDING - try to measure the stop distances in d3
+  ## see: http://bl.ocks.org/duopixel/3824661
+  # route_path = d3.select("path.bus-route-#{data_daily_trips[0].id_route}").node()
+  # 
+  # id_stops = data_daily_trips[0].stops.map((d) -> d.id_stop)
+  # stop_distances = {}
+  # 
+  # id_stops.forEach (sid, i) ->
+  #   circ = d3.select('circle.bus-stop-'+sid)
+  #   stop_distances[sid] = get_path_distance(route_path, circ.attr('cx'), circ.attr('cy'))
+  # debugger
+
+  # FIXME!! - routes are bidirectional!!!!!
   # TODO - need a unique list of stops over all the trips, not just the first trip
-  stops = g.selectAll("circle")
-    .data(data_daily_trips[0].stops).enter()
+
+  # all_stops = _.flatten data_daily_trips.map (d) ->
+  #   d.stops.map (s) ->
+  #     id_stop: s.id_stop
+  #     distance: s.distance
+  # 
+  # all_stop_ids = _.unique(all_stops.map (s) -> s.id_stop)
+
+  all_stops_data = data_daily_trips[0].stops.map (d) -> 
+    distance: d.distance
+    id_stop: d.id_stop
+    
+  debugger
+  stops = g.selectAll("circle.bus-stop")
+    .data(all_stops_data).enter()
     .append("circle").attr
-      class: "bus-stop"
+      class: (d) -> "bus-stop bus-stop-#{d.id_stop}"
       r: 4
       cx: (d) -> xScale(xVal(d))
       cy: yPos
-
+        
   # basic force layout
   force_layout = () -> 
     d3.layout.force()
