@@ -72,6 +72,7 @@ class LeafletMap
     @_stopCoordinates = `undefined`
     @_bounds          = `undefined`
     @_remoteRequests  = []
+    @visTimers = []
     return
 
   _busStopMouseover: (elem, d) ->
@@ -104,21 +105,24 @@ class LeafletMap
     id_route = d.properties.id_route
     d3.select('#route_name').text(d.properties.name_route)
 
-    # clear out any existing visualizations
-    d3.selectAll('#route_vis > svg').remove()
-
     # stop loading any other route data
     req.abort() for req in @_remoteRequests
+    # cancel the timers from existing visualizations
+    clearTimeout(timerId) for timerId in @visTimers
     @_remoteRequests = []
+    @visTimers = []
+
+    # clear out any existing visualizations
+    d3.selectAll('#route_vis > svg').remove()
 
     # load up the timeseries data for the route
     # TODO - date picker
     date = '20121003'
     filename = "/data/#{@city}/timeseries/#{date}_#{id_route}.json"
     console.log('loading', filename)
-    @_remoteRequests.push(
-      d3.json(filename, (error, data) -> show_ts(error, data, stops, __this))
-    )
+    
+    call_ts_vis = (error, data) -> show_ts(error, data, stops, __this)
+    @_remoteRequests.push(d3.json(filename, call_ts_vis))
 
   _loadData: ->
     d3.json "/data/#{@city}/stops.json", (stops) =>
@@ -158,10 +162,10 @@ class LeafletMap
             class: (d) -> "bus-route bus-route-#{d.properties.id_route}"
             d: @_path
           )
-          .style("stroke", (d) -> __this._colorScale(d.properties.id_route))
-          .on("mouseover", (d) -> __this._routeMouseover(this, d))
-          .on("mouseout", (d) -> __this._routeMouseout(this, d))
-          .on("click", (d) -> __this._routeClick(this, d, stops))
+            .style("stroke", (d) -> __this._colorScale(d.properties.id_route))
+            .on("mouseover", (d) -> __this._routeMouseover(this, d))
+            .on("mouseout", (d) -> __this._routeMouseout(this, d))
+            .on("click", (d) -> __this._routeClick(this, d, stops))
 
         # start the thing off with a default route
         @_routeClick(null, routes.objects.routes.geometries[0], stops)

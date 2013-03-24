@@ -41,6 +41,17 @@ window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
   
   yPos = yScale(0.5)
   yPosPassengers = yScale(0.4)
+  yValBus = (dir) ->
+    if dir then 0.45 else 0.55
+  yPosPassengers = (dir) -> 
+    if dir then yScale(0.38) else yScale(0.62)
+  randomYpos = (trip_direction) ->
+    # inbound enters/exits below, outbound enters/exits above
+    if trip_direction
+      yScale(getRandomRange(0, yValBus(trip_direction)))
+    else
+      yScale(getRandomRange(yValBus(trip_direction), 1))
+            
   color_filler = d3.scale.category20()
   
   # setup the route line and stops
@@ -87,13 +98,18 @@ window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
   vis_highlight_stop = (d) -> 
     map._g.select("circle.bus-stop-#{d.id_stop}")
       .moveToFront()
-      .attr('r', map.busStopRadius * 3)
       .classed('highlighted', true)
+      .transition()
+        .attr('r', map.busStopRadius * 3)
+
+
       
   vis_unhighlight_stop = (d) ->
     map._g.select("circle.bus-stop-#{d.id_stop}")
-      .attr('r', map.busStopRadius)
       .classed('highlighted', false)
+      .transition()
+        .attr('r', map.busStopRadius)
+
 
   stops
     .on('mouseover', vis_highlight_stop)
@@ -115,15 +131,16 @@ window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
       .size([svg_route.width, svg_route.height])
 
   # create timers to start each bus trip 
+  all_timers = []
   data_daily_trips.forEach (data_trip, i) ->  
     data_trip.Tstart = tScale(d3.min(data_trip.stops, tVal))
     
     # debugging HACK - only run 2 trips
     # return unless i<=1
     
-    # TODO - might need to use setInterval, clearInterval to be able to cancel these 
+    # TODO - make sure the cancelling the timers is working 
     start_trip = () -> begin_bus_trip(data_trip)
-    d3.timer(start_trip, data_trip.Tstart)
+    map.visTimers.push(setTimeout(start_trip, data_trip.Tstart))
 
   
   begin_bus_trip = (data_trip) ->
@@ -142,10 +159,10 @@ window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
       .range([0, tScale(d3.max(data_stops, tVal)) - tScale(d3.min(data_stops, tVal))])
           
     bus = g.append("circle").attr
-      class: "bus-" + data_trip.id_trip
+      class: "bus bus-" + data_trip.id_trip
       r: rScale(rVal(data_stops[0]))
       cx: xScale(xVal(data_stops[0]))
-      cy: yPos
+      cy: yScale(yValBus(data_trip.trip_direction))
 
     # setup the force layout for the people moving to the bus stops
     data_passengers = []
@@ -156,7 +173,7 @@ window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
       k = .9 * e.alpha
       data_passengers.forEach (o, i) ->
         o.x += (xScale(xVal(data_stops[o.stop_number])) - o.x) * k
-        o.y += (yPosPassengers - o.y) * k
+        o.y += (yPosPassengers(data_trip.trip_direction) - o.y) * k
       passenger_circles.attr
         cx: (d) -> d.x
         cy: (d) -> d.y
@@ -187,11 +204,9 @@ window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
         .transition(boarding_duration)
         .attr
           cx: (d) -> xScale(xVal(data_stops[d.stop_number]))
-          cy: yPos
-      drop_circles = () ->
-        passenger_circles.exit().remove()
-        return true
-      d3.timer(drop_circles, boarding_duration)
+          cy: randomYpos(data_trip.trip_direction)
+      drop_circles = () -> passenger_circles.exit().remove()
+      setTimeout(drop_circles, boarding_duration)
       
       force.start()
       return
@@ -203,7 +218,7 @@ window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
         id_trip: id_trip
         # centered horizontally on the foci, but with some scatter to either side 
         x: xScale(xVal(data_stops[stop_number])) + (Math.random() - 0.5) * width / data_stops.length
-        y: getRandomRange(yScale(0.25), yScale(0.75))
+        y: randomYpos(data_trip.trip_direction)
     
       redraw_passengers()
 
@@ -213,24 +228,22 @@ window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
     
       departing_data = ({
         xEnd: xScale(xVal(stop)) + (Math.random() - 0.5) * width / data_stops.length,
-        yEnd: Math.random() * height
+        yEnd: randomYpos(data_trip.trip_direction)
         } for i in range(stop.count_exiting))
     
       # return if stop.count_exiting == 0
       departing_passengers = g.selectAll("circle.passenger-departing-#{id_trip}-#{stop_number}")
-        .data(departing_data) 
+        .data(departing_data)
         .enter().append('circle')
       departing_passengers.attr
           class: "passenger-departing passenger-departing-#{id_trip}-#{stop_number}"
           cx: xScale(xVal(stop))
-          cy: yPos
+          cy: yScale(yValBus(data_trip.trip_direction))
           r: 3
         .style
           fill: color_filler(stop_number)
           stroke: d3.rgb(color_filler(stop_number)).darker(2)
-          "stroke-width": 1.5        
-      departing_passengers.style
-          fill: color_filler(stop_number)
+          "stroke-width": 1.5
       # set the duration of the departure
       duration = durationScale(tDepartureVal(stop) - tVal(stop)) + 1000
       # fade out and move to some random position near the stop
@@ -243,10 +256,10 @@ window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
           'fill-opacity': 0.01
     
       # when transition ends - remove the data  
-      drop_data = () ->
+      drop_data = () -> 
         departing_passengers.data([]).exit().remove()
         return
-      d3.timer(drop_data, duration)
+      setTimeout(drop_data, duration)
     
     show_boarding_passengers = (stop_number, duration_boarding) ->
       # show the people to getting onto the bus
@@ -295,8 +308,8 @@ window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
           move_to_next_fn = () ->
             vis_unhighlight_stop(data_stops[stop_number])
             move_bus(stop_number + 1)
-            return true
-          d3.timer(move_to_next_fn, duration_stopped)
+            return
+          setTimeout(move_to_next_fn, duration_stopped)
         else
           # done with trip
           bus.remove() 
@@ -308,9 +321,9 @@ window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
             console.log("removing #{remaining[0].length} left behind passengers for #{id_trip}")
             remaining.remove()
           
-        return true
+        return
       
-      d3.timer(arrival_fn, duration_motion)
+      setTimeout(arrival_fn, duration_motion)
   
 
     # set up the passenger arrival timing
@@ -319,24 +332,26 @@ window.show_ts = (error, data_daily_trips, data_stop_locations, map) ->
       range(stop.count_boarding).forEach (el, i) -> 
         # TODO make the passenger more likely to get to stop just before bus arrives
         # currently equally likely that passeger arrives while 
-        # bus is anywhere between 5 and 1 stop away
+        # bus is anywhere between 5 stops away and Tarrival - 30sec
         if s > 5
           tPrev = tVal(data_stops[s - 5])
         else
           tPrev = tVal(data_stops[0])
         data_passenger_timing.push
-          time_appear: getRandomRange(tVal(stop), tPrev) - tVal(data_stops[0])
+          time_appear: getRandomRange(tPrev, tVal(stop) - 30) - tVal(data_stops[0])
           stop_number: s
-          
     # add the passengers to the stops as they arrive
     data_passenger_timing.forEach (psgr, p) ->
       adder_fn = () ->
         add_passenger_to_bus_stop(psgr.stop_number)
         return true
+      # FIXME - this seems to be leaving passengers behind
+      # try using a d3 timer  -- setTimeout is too slow???
       d3.timer(adder_fn, durationScale(psgr.time_appear))
       return
 
     # trigger the bus motion to the first stop
     move_bus(0)
-    
-    return true
+    return
+
+  return all_timers

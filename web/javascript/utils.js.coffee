@@ -22,7 +22,7 @@ window.nested_min_max = (data, nested_key, fn) ->
 
 
 window.calcDistanceAlongPath = (points, path, Nsegments) ->
-  Nsegments or= 1000
+  Nsegments or= 5000
   # basic idea from: http://bl.ocks.org/duopixel/3824661
 
   pathLength = path.getTotalLength()
@@ -38,7 +38,7 @@ window.calcDistanceAlongPath = (points, path, Nsegments) ->
   points.forEach (pt, i) ->
     pt.distance = nearestNeighborIndex(pt, segPoints) * pathLength / Nsegments
   
-  # FIXME - still not quite working
+  # TODO check that this is working all the way
   return points
 
 
