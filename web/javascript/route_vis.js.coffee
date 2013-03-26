@@ -76,38 +76,6 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
     return
   route_path = d3.select("path.bus-route-#{data_daily.id_route}").moveToFront()
   calcDistanceAlongPath(data_daily.stop_locations, route_path.node())
-  # # HACK
-  # not_cur_route = d3.selectAll("path.bus-route").filter((d) ->
-  #   d.properties.id_route.toString() isnt id_route
-  # ).remove()
-  # 
-  # d3.selectAll("circle.bus-stop").filter((d) -> 
-  #   # !(d.properties.id_stop in all_stop_ids)
-  #   true
-  # ).remove()
-  # 
-  # 
-  # pathLength = route_path.getTotalLength()
-  # Nseg = 30
-  # segPoints = (route_path.getPointAtLength(pathLength * i/ Nseg) for i in [0...Nseg])
-  # segPoints.forEach (pt, i) ->
-  #   pt.distance = pathLength * i / Nseg
-  # segPoints = segPoints.map (d) ->
-  #   distance: d.distance
-  #   x: d.x
-  #   y: d.y
-  # map._g.selectAll('circle.bus-stop')
-  #   .data(segPoints)
-  #   .enter().append('circle')
-  #     .attr
-  #       r: 6
-  #       cx: (d) -> d.x
-  #       cy: (d) -> d.y
-  #     .style
-  #       fill: 'black'
-  #     .on("mouseover", (d) -> console.log(d.distance); d3.select(this).attr('r', 8))
-  #     
-  # # HACK
 
   
   # define xVal to lookup the distance from the stops data
@@ -155,14 +123,6 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
       d: line_maker
       class: "bus-line"
 
-  # find_stop = (d) ->
-  #   g.select("circle.bus-stop-#{d.id_stop}")
-  #     .attr('r', '10')
-  #   elem = d3.select(this)
-  #   pts = [{x: +elem.attr('cx'), y: +elem.attr('cy')}]
-  #   calcDistanceAlongPath(pts, route_path)
-  #   
-  # map._busStops.on("click", find_stop)
 
   # basic force layout
   force_layout = () -> 
