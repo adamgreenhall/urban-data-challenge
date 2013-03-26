@@ -57,21 +57,6 @@ stop_properties = pd.DataFrame(
 df = df.join(stop_properties, on='id_stop')
 
 
-# calc stop_position
-# df['stop_seq'] = np.nan
-# df['stop_position'] = np.nan
-# df = df.reset_index()
-# for idx, trip in df.groupby(['date', 'id_route', 'id_trip', 'trip_direction']): 
-#     if trip.trip_direction.values[0] == 0: continue  # if outbound
-#     df.ix[trip.index, 'stop_seq'] = trip.reset_index().index.values
-#     
-# for idx, stops in df.groupby(['id_route', 'id_stop', 'trip_direction']):
-#     if stops.trip_direction.values[0] == 0: continue  # if outbound
-#     # take the 75th percentile number to avoid outliers
-#     df.ix[stops.index, 'stop_position'] = int(stops.stop_seq.describe()['75%'])
-# 
-# df = df.set_index(index_cols)
-
 # write timeseries json to files
 # one file per route per day
 os.system('mkdir -p web/data/{}/timeseries'.format(city))  # setup the dir 
@@ -102,14 +87,6 @@ for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
             .reset_index(drop=True)\
             .sort('time_arrival')\
             .set_index('id_stop')
-
-        # convert lat/long to cummulative km distance from trip start point
-        # trip['distance'] = topojson.get_linear_dist(trip)
-        # trip = trip.drop(['latitude', 'longitude'], axis=1)
-
-        # TODO - bad data correction on counts
-        # TODO - bad data correction on speed
-        # trip['speed'] = trip.distance.diff() / trip.time_arrival.diff() * 1000  # in m/s
         
         # FIXME - ensure no nan make it into json
         
