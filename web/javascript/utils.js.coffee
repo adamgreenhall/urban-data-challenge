@@ -27,18 +27,28 @@ window.calcDistanceAlongPath = (points, path, Nsegments) ->
 
   pathLength = path.getTotalLength()
   BBox = path.getBBox()
-  scale = pathLength / BBox.width
-  
-  segPoints = (path.getPointAtLength(pathLength / i) for i in [0...Nsegments])
+  segPoints = (path.getPointAtLength(pathLength * i / Nsegments) for i in [1...Nsegments])
 
+  # HACK - probably could use a real projection instead, but this seems to 
+  # work for relatively straight routes
+  # 
+  # multi line strings may not have the most logical ordering of their segments
+  # so here we sort them by their larger axis direction (x or y)
+  if BBox.width > BBox.height
+    # sort primarily by x
+    segPoints.sort( (a, b) -> d3.ascending(a.x  + 0.1 * a.y, b.x + 0.1 * b.y))
+  else
+    #sort primarily by y
+    segPoints.sort( (a, b) -> d3.ascending(0.1 * a.x  + a.y, 0.1 * b.x + b.y))
+    
   nearestNeighborIndex = (pt, points) ->
     dists = (Math.pow(pt.x - other.x, 2) + Math.pow(pt.y - other.y, 2) for other in points)
     return dists.indexOf(d3.min(dists))
 
   points.forEach (pt, i) ->
-    pt.distance = nearestNeighborIndex(pt, segPoints) * pathLength / Nsegments
+    idx = nearestNeighborIndex(pt, segPoints)
+    pt.distance =  pathLength * idx / Nsegments
   
-  # TODO check that this is working all the way
   return points
 
 
