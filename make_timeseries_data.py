@@ -57,6 +57,20 @@ stop_properties = pd.DataFrame(
 df = df.join(stop_properties, on='id_stop')
 
 
+# calc stop_position
+df['stop_seq'] = np.nan
+df['stop_position'] = np.nan
+df = df.reset_index()
+for idx, trip in df.groupby(['date', 'id_route', 'id_trip', 'trip_direction']): 
+    if trip.trip_direction.values[0] == 0: continue  # if outbound
+    df.ix[trip.index, 'stop_seq'] = trip.reset_index().index.values
+    
+for idx, stops in df.groupby(['id_route', 'id_stop', 'trip_direction']):
+    if stops.trip_direction.values[0] == 0: continue  # if outbound
+    # take the 75th percentile number to avoid outliers
+    df.ix[stops.index, 'stop_position'] = int(stops.stop_seq.describe()['75%'])
+
+df = df.set_index(index_cols)
 
 # write timeseries json to files
 # one file per route per day
