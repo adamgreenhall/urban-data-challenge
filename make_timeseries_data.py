@@ -58,19 +58,19 @@ df = df.join(stop_properties, on='id_stop')
 
 
 # calc stop_position
-df['stop_seq'] = np.nan
-df['stop_position'] = np.nan
-df = df.reset_index()
-for idx, trip in df.groupby(['date', 'id_route', 'id_trip', 'trip_direction']): 
-    if trip.trip_direction.values[0] == 0: continue  # if outbound
-    df.ix[trip.index, 'stop_seq'] = trip.reset_index().index.values
-    
-for idx, stops in df.groupby(['id_route', 'id_stop', 'trip_direction']):
-    if stops.trip_direction.values[0] == 0: continue  # if outbound
-    # take the 75th percentile number to avoid outliers
-    df.ix[stops.index, 'stop_position'] = int(stops.stop_seq.describe()['75%'])
-
-df = df.set_index(index_cols)
+# df['stop_seq'] = np.nan
+# df['stop_position'] = np.nan
+# df = df.reset_index()
+# for idx, trip in df.groupby(['date', 'id_route', 'id_trip', 'trip_direction']): 
+#     if trip.trip_direction.values[0] == 0: continue  # if outbound
+#     df.ix[trip.index, 'stop_seq'] = trip.reset_index().index.values
+#     
+# for idx, stops in df.groupby(['id_route', 'id_stop', 'trip_direction']):
+#     if stops.trip_direction.values[0] == 0: continue  # if outbound
+#     # take the 75th percentile number to avoid outliers
+#     df.ix[stops.index, 'stop_position'] = int(stops.stop_seq.describe()['75%'])
+# 
+# df = df.set_index(index_cols)
 
 # write timeseries json to files
 # one file per route per day
@@ -78,6 +78,17 @@ os.system('mkdir -p web/data/{}/timeseries'.format(city))  # setup the dir
 for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
     filename = 'web/data/{c}/timeseries/{d}_{r}.json'.format(
         c=city, d=date.strftime('%Y%m%d'), r=id_route)
+    
+    # get the unique stops
+    stops_inbound = pd.Index(trips.xs(1, level='trip_direction').id_stop.unique())
+    stops_outbound = pd.Index(trips.xs(0, level='trip_direction').id_stop.unique())
+    stops_both_directions = stops_inbound.intersection(stops_outbound)
+    stops_inbound = stops_inbound.diff(stops_outbound)
+    stops_outbound = stops_outbound.diff(stops_inbound)
+    stop_locations = \
+        [dict(id_stop=str(s), direction='inbound') for s in stops_inbound] + \
+        [dict(id_stop=str(s), direction='outbound') for s in stops_outbound] + \
+        [dict(id_stop=str(s), direction='both') for s in stops_both_directions]
     
     # get the trip order correct
     # trips should be ordered by their first arrival time
@@ -100,15 +111,23 @@ for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
         # TODO - bad data correction on speed
         # trip['speed'] = trip.distance.diff() / trip.time_arrival.diff() * 1000  # in m/s
         
+        # FIXME - ensure no nan make it into json
+        
         trip_json = {
-            'date': date.strftime('%Y%m%d'),
-            'id_route': str(id_route),
             'id_trip': str(id_trip),
             'trip_direction': int(trip_direction),
             'stops': utils.df_to_json(trip)
         }
         trips_json.append(trip_json)
     
+    
+    all_json = {
+        'date': date.strftime('%Y%m%d'),
+        'id_route': str(id_route),
+        'stop_locations': stop_locations,
+        'trips': trips_json,
+    }
+    
     with open(filename, 'w+') as f:
         print filename
-        f.write(json.dumps(trips_json))
+        f.write(json.dumps(all_json))
