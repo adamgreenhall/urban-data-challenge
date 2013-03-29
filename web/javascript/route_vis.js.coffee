@@ -10,20 +10,25 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
   
   time_formatter = (t) ->
     d3.time.format('%I:%M%p on a %A ')(new Date(t * 1000))
+  
+  fraction_stopped_time = 
+    deptaring: 2/5
+    boarding: 3/5
+  
   # setup container
   margin =
     top: 20
     right: 20
     bottom: 20
     left: 20
-  width = 1200 - margin.left - margin.right
-  height = 300 - margin.top - margin.bottom
+  width = map._svgMap.attr('width') - margin.left - margin.right
+  height = map._svgMap.attr('height') / 3.5 - margin.top - margin.bottom
   svg_route = d3.select('#route_vis').append('svg').attr
     width: width + margin.left + margin.right
     height: height + margin.top + margin.bottom
   g = svg_route.append("g").attr
     transform: translate(margin.left, margin.top)
-  
+      
   time_display = d3.select('#time_display')
   
   # a linear scale mapping the time difference (in UTC seconds)
@@ -37,7 +42,7 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
     .range([height - margin.top, 0 + margin.bottom])
   rScale = d3.scale.linear()
     .domain(nested_min_max(data_daily.trips, 'stops', rVal))
-    .range([3, 20])
+    .range([30, 80])
 
   
   yPos = yScale(0.5)
@@ -51,7 +56,8 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
       0.5
   
   yValBus = (dir) ->
-    if dir then 0.45 else 0.55
+    if dir then 0.45 else 0.65
+    
   yPosPassengers = (dir) -> 
     if dir then yScale(0.38) else yScale(0.62)
   randomYpos = (trip_direction) ->
@@ -98,7 +104,7 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
 
   # add mouse interaction 
   vis_highlight_stop = (d) -> 
-    map._g.select("circle.bus-stop-#{d.id_stop}")
+    map.g.select("circle.bus-stop-#{d.id_stop}")
       .moveToFront()
       .classed('highlighted', true)
       .transition()
@@ -107,7 +113,7 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
 
       
   vis_unhighlight_stop = (d) ->
-    map._g.select("circle.bus-stop-#{d.id_stop}")
+    map.g.select("circle.bus-stop-#{d.id_stop}")
       .classed('highlighted', false)
       .transition()
         .attr('r', map.busStopRadius)
@@ -159,12 +165,20 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
     durationScale = d3.scale.linear()
       .domain([0, d3.max(data_stops, tVal) - d3.min(data_stops, tVal)])
       .range([0, tScale(d3.max(data_stops, tVal)) - tScale(d3.min(data_stops, tVal))])
-          
-    bus = g.append("circle").attr
+
+    bus = g.append('image').attr
+      'xlink:href': "img/bus-#{if data_trip.trip_direction then 'inbound' else 'outbound'}.png"
       class: "bus bus-" + data_trip.id_trip
-      r: rScale(rVal(data_stops[0]))
-      cx: xScale(xVal(data_stops[0]))
-      cy: yScale(yValBus(data_trip.trip_direction))
+      width: rScale(rVal(data_stops[0]))
+      height: rScale(rVal(data_stops[0]))
+      x: xScale(xVal(data_stops[0]))
+      y: yScale(yValBus(data_trip.trip_direction))
+    
+    # bus = g.append("circle").attr
+    #   class: "bus bus-" + data_trip.id_trip
+    #   r: rScale(rVal(data_stops[0]))
+    #   cx: xScale(xVal(data_stops[0]))
+    #   cy: yScale(yValBus(data_trip.trip_direction))
 
     # setup the force layout for the people moving to the bus stops
     data_passengers = []
@@ -207,7 +221,12 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
         .attr
           cx: (d) -> xScale(xVal(data_stops[d.stop_number]))
           cy: randomYpos(data_trip.trip_direction)
-      drop_circles = () -> passenger_circles.exit().remove()
+      drop_circles = () -> 
+        passenger_circles.exit().remove()
+        # HACK - cleanup left behind passegers
+        passenger_circles.filter((d) -> d.stop_number == current_bus_stop).remove()
+        data_passengers = data_passengers.filter((d) -> d.stop_number != current_bus_stop)
+
       setTimeout(drop_circles, boarding_duration)
       
       force.start()
@@ -263,12 +282,16 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
         return
       setTimeout(drop_data, duration)
     
-    show_boarding_passengers = (stop_number, duration_boarding) ->
+    show_boarding_passengers = (stop_number, duration_stopped) ->
       # show the people to getting onto the bus
       return unless data_passengers.length > 0
-      data_passengers = data_passengers.filter((p) -> p.stop_number != stop_number)
-      # redraw the force layout without this stop's people
-      redraw_passengers(duration_boarding)
+      boarding_fn = () -> 
+        data_passengers = data_passengers.filter((p) -> p.stop_number != stop_number)
+        # redraw the force layout without this stop's people
+        redraw_passengers(duration_stopped * fraction_stopped_time.boarding )
+
+      # first, wait for people to get off the bus (3/5ths of the time)
+      setTimeout(boarding_fn, duration_stopped * fraction_stopped_time.deptaring)
       return
 
     move_bus = (stop_number) ->
@@ -285,7 +308,7 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
       bus.transition()
         .duration(duration_motion)
         .attr
-          cx: xScale(xVal(data_stops[stop_number]))
+          x: xScale(xVal(data_stops[stop_number]))
     
 
       arrival_fn = () ->  
@@ -303,8 +326,8 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
           bus.transition()
             .duration(duration_stopped)
             .attr
-              r: rScale(rVal(data_stops[stop_number]))
-        
+              height: rScale(rVal(data_stops[stop_number]))
+              width: rScale(rVal(data_stops[stop_number]))
           # pause for the time the bus spends at the stop.
           # and then move the bus to the next stop
           move_to_next_fn = () ->
@@ -335,21 +358,19 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
         # TODO make the passenger more likely to get to stop just before bus arrives
         # currently equally likely that passeger arrives while 
         # bus is anywhere between 5 stops away and Tarrival - 30sec
-        if s > 5
+        if s > 8
           tPrev = tVal(data_stops[s - 5])
         else
           tPrev = tVal(data_stops[0])
         data_passenger_timing.push
-          time_appear: getRandomRange(tPrev, tVal(stop) - 30) - tVal(data_stops[0])
+          time_appear: getRandomRange(tPrev, tVal(stop) - 100) - tVal(data_stops[0])
           stop_number: s
     # add the passengers to the stops as they arrive
     data_passenger_timing.forEach (psgr, p) ->
       adder_fn = () ->
         add_passenger_to_bus_stop(psgr.stop_number)
         return true
-      # FIXME - this seems to be leaving passengers behind
-      # try using a d3 timer  -- setTimeout is too slow???
-      d3.timer(adder_fn, durationScale(psgr.time_appear))
+      setTimeout(adder_fn, durationScale(psgr.time_appear))
       return
 
     # trigger the bus motion to the first stop
