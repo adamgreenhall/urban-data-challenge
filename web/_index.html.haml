@@ -21,11 +21,29 @@
         %span.stop-name
     .row 
       #route_vis_panel
-        %h3#route_question
+        %h3#route_question.normalOperation
           %span what is riding
-          %span#route_name line 5
+          %span#route_name 1 California
           %span like at
-        %h3#time_display 5pm on a Sunday?
+        %h3.errorState.hidden
+          %span Sorry, we don't see
+          %span#route_name 1 California
+        %h3
+          %span#time-display
+            %span.time.normalOperation{:style=>'width: 3em; float: left;'} 05:00
+            %span.ampm.normalOperation{:style=>'width: 2em; float: left; text-transform: lowercase;'} AM
+            %span.normalOperation on a
+            %span.errorState.hidden running on
+          %span
+            %select#weekday
+              %option{:value=>'20121001'} Monday
+              %option{:value=>'20121002'} Tuesday
+              %option{:value=>'20121003'} Wednesday
+              %option{:value=>'20121004'} Thursday
+              %option{:value=>'20121005'} Friday
+              %option{:value=>'20121006'} Saturday
+              %option{:value=>'20121007'} Sunday
+          %span.normalOperation ?
         #route_vis
       #map
   :javascript

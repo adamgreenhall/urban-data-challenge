@@ -22,9 +22,9 @@ def get_distances(trips, stop_locations, city='san-francisco',
     city_stops_topojson=None):
     # SF doesn't have squat on info 
     # Zurich has mileage
-    if city == 'san-francisco':
-        # join lat/long to the timeseries data
-        trips = trips.join(city_stops_topojson, on='id_stop')
+
+    # join lat/long to the timeseries data
+    trips = trips.join(city_stops_topojson, on='id_stop')
 
     stop_locations = stop_locations.set_index('id_stop')
     stop_locations = get_direction_dists(
@@ -105,14 +105,14 @@ def get_direction_dists(df, stop_locations, city, direction='inbound'):
         return stop_locations
     
     trip_stops = df.groupby('id_trip').apply(lambda grp: grp.id_stop.count())
-    if (trip_stops >= Nstops).any():
-        tid = trip_stops.idxmax()
+    if (trip_stops == Nstops).any():
+        tid = trip_stops[trip_stops == Nstops].index[0]
         ordered_trip = df[df.id_trip == tid]
     else:
         # the route never hits all the stops in order in one trip
         # find the stops not in the trip with the most stops 
         # manufacture an orderd trip
-        tid = trip_stops.idxmax()
+        tid = trip_stops[trip_stops <= Nstops].idxmax()
         ordered_trip = df[df.id_trip == tid]
         stop_order = ordered_trip.id_stop.reset_index(drop=True).values.tolist()
         stops_missing = pd.Index(df.id_stop.unique()).diff(stop_order)

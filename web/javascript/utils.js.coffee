@@ -51,6 +51,9 @@ window.calcDistanceAlongPath = (points, path, Nsegments) ->
   
   return points
 
+window.toTitleCase = (str) ->
+  str.replace /\w\S*/g, (txt) ->
+    txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
 
 d3.selection::moveToFront = ->
   @each ->

@@ -42,7 +42,7 @@ for tcol in filter(lambda c: c in time_cols, df.columns):
         ).apply(utils.unixtime).values
 
 # 
-if city == 'san-francisco':
+if city != 'geneva':
     city_stops_topojson = load_stops_topojson(city)
 else:
     city_stops_topojson = None
@@ -84,8 +84,13 @@ for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
         if len(stop_locations) > 0:
             stop_locations = get_distances(
                 trips, stop_locations, city, city_stops_topojson=city_stops_topojson)
+        
     stop_locations = stop_locations.set_index('id_stop')
-    
+    stop_locations['direction'] = stop_locations.direction\
+        .replace('inbound', 1)\
+        .replace('outbound', 0)\
+        .replace('both', -1)
+
     # get the trip order correct
     # trips should be ordered by their first arrival time
     id_trip_ordered = trips.groupby(level=['id_trip', 'trip_direction']).time_arrival.min().order().index
@@ -116,7 +121,4 @@ for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
     
     with open(filename, 'w+') as f:
         print filename
-        try: 
-            f.write(json.dumps(all_json))
-        except TypeError:
-            utils.set_trace()
+        f.write(json.dumps(all_json))

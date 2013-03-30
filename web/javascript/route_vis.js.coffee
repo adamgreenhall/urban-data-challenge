@@ -1,20 +1,30 @@
-window.show_ts = (error, data_daily, data_stop_locations, map) ->
+window.show_ts = (error, data_daily, map) ->
   
   if error
     console.log(error.statusText)
-    # TODO - warn user
+    d3.selectAll('.normalOperation').classed('hidden', true)
+    d3.selectAll('.errorState').classed('hidden', false)
     return
+  else
+    d3.selectAll('.errorState').classed('hidden', true)
+    d3.selectAll('.normalOperation').classed('hidden', false)
+  
   tVal = (d) -> d.time_arrival
   tDepartureVal = (d) -> d.time_departure
   rVal = (d) -> d.count  # passenger count
   
-  time_formatter = (t) ->
-    d3.time.format('%I:%M%p on a %A ')(new Date(t * 1000))
+  updateTime = (timeDisplay, t) ->
+    curTime = new Date(t * 1000)
+    timeDisplay.time.text(d3.time.format('%I:%M')(curTime))
+    timeDisplay.ampm.text(d3.time.format('%p')(curTime))
+    timeDisplay.weekday.text(d3.time.format('%A')(curTime))
   
   fraction_stopped_time = 
     deptaring: 2/5
     boarding: 3/5
   
+  visStopRadius = 3
+
   # setup container
   margin =
     top: 3
@@ -23,24 +33,24 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
     left: 20
   width = map._svgMap.attr('width') - margin.left - margin.right
   height = map._svgMap.attr('height') / 4 - margin.top - margin.bottom
-  
-  # TODO 
-  # make g element as subset of map.g
-  # make rect background
-  # make the standard g element
-  g = map.g.append('g').attr
-    id: 'route-vis'
+    
+  svg_route = d3.select('#route_vis').append('svg').attr
     width: width + margin.left + margin.right
     height: height + margin.top + margin.bottom
+  g = svg_route.append("g").attr
     transform: translate(margin.left, margin.top)
+
+  timeDisplay = 
+    time: d3.select('#time-display > .time')
+    ampm: d3.select('#time-display > .ampm')
+    weekday: d3.select('#time-display > .weekday')
     
-  # svg_route = d3.select('#route_vis').append('svg').attr
-  #   width: width + margin.left + margin.right
-  #   height: height + margin.top + margin.bottom
-  # g = svg_route.append("g").attr
-  #   transform: translate(margin.left, margin.top)
-      
-  time_display = d3.select('#time_display')
+  stopNameDisplay = g.append('text')
+    .attr
+      id: 'stop-name-sign'
+      x: 0
+      y: 0
+    .text('')
   
   # a linear scale mapping the time difference (in UTC seconds)
   # to the length of the visualization playback (Tmax)
@@ -59,9 +69,9 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
   yPos = yScale(0.5)
   yPosPassengers = yScale(0.4)
   yValStop = (dir) ->
-    if dir == 'inbound'
+    if dir == 1 #inbound
       0.48
-    else if dir == 'outbound'
+    else if dir == 0 # outbound
       0.52
     else 
       0.5
@@ -69,17 +79,17 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
   yValBus = (dir) ->
     if dir then 0.45 else 0.69
   
-  yValDoorsBus = (dir) ->
-    yValBus(dir) - (if dir then rScale.range()[1] else 0)
+  yScaledValDoorsBus = (dir) ->
+    yScale(yValBus(dir)) + (if dir then 0.5 * rScale.range()[1] else 0)
     
   yPosPassengers = (dir) -> 
     if dir then yScale(0.20) else yScale(0.69)
   randomYpos = (trip_direction) ->
     # inbound enters/exits below, outbound enters/exits above
     if trip_direction
-      yScale(getRandomRange(0, yValDoorsBus(trip_direction)))
+      getRandomRange(yScale(0), yScaledValDoorsBus(trip_direction))
     else
-      yScale(getRandomRange(yValDoorsBus(trip_direction), 1))
+      getRandomRange(yScaledValDoorsBus(trip_direction), yScale(1))
             
   color_filler = d3.scale.category20()
   
@@ -88,14 +98,9 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
     .x((d) -> d)
     .y((d) -> yPos)
   
-  # measure the stop distances in d3
-  route_path = d3.select("path.bus-route-#{data_daily.id_route}").moveToFront()
-  #   circ = d3.select("circle.bus-stop-#{d.id_stop}")
-  #   d.x = +circ.attr('cx') 
-  #   d.y = +circ.attr('cy')
-  #   return
-  # calcDistanceAlongPath(data_daily.stop_locations, route_path.node())
 
+  routePath = d3.select("path.bus-route-#{data_daily.id_route}")
+  routePath.moveToFront()
   
   # define xVal to lookup the distance from the stops data
   stop_dists = {}  # make a hash keyed by stop id
@@ -103,38 +108,68 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
     stop_dists[d.id_stop] = +d.distance
   xVal = (d) -> stop_dists[d.id_stop]
   xScale = d3.scale.linear()
-    .domain(d3.extent(data_daily.stop_locations, (d) -> d.distance))
+    .domain(d3.extent(d3.values(stop_dists)))
     .range([margin.left, width - margin.right])
 
+  xScaledValBus = (d, dir) -> xScale(xVal(d)) - (if dir then rScale(rVal(d)) else 0)
 
   stops = g.selectAll("circle.bus-stop")
     .data(data_daily.stop_locations).enter()
     .append("circle").attr
       class: (d) -> "bus-stop bus-stop-#{d.id_stop}"
-      r: 4
+      r: visStopRadius
       cx: (d) -> xScale(d.distance)
       cy: (d) -> yScale(yValStop(d.direction))
 
   # add mouse interaction 
-  vis_highlight_stop = (d) -> 
-    map.g.select("circle.bus-stop-#{d.id_stop}")
+  vis_highlight_stop = (d, elem) -> 
+    map_circle = map.g.select("circle.bus-stop-#{d.id_stop}")
+    map_circle
       .moveToFront()
       .classed('highlighted', true)
       .transition()
         .attr('r', map.busStopRadius * 3)
-
-
-      
-  vis_unhighlight_stop = (d) ->
+    if elem  # this is an acutal mouseover, not just bus motion
+      map_circle.classed('user-highlighted', true)
+      vis_circle = d3.select(elem)
+      vis_circle
+        .classed('user-highlighted', true)
+        .moveToFront()
+        .transition()
+          .attr('r', visStopRadius*2)
+      # show the stop name
+      stopNameDisplay
+        .text(map_circle.data()[0].properties.name_stop)
+        .attr
+          x: vis_circle.attr('cx')
+          y: +vis_circle.attr('cy') - 20
+    
+  vis_unhighlight_stop = (d, elem) ->
     map.g.select("circle.bus-stop-#{d.id_stop}")
       .classed('highlighted', false)
+      .classed('user-highlighted', false)
       .transition()
         .attr('r', map.busStopRadius)
+    if elem
+      d3.select(elem)
+        .classed('user-highlighted', false)
+        .transition()
+          .attr('r', visStopRadius)
+      stopNameDisplay.text('')
 
 
   stops
-    .on('mouseover', vis_highlight_stop)
-    .on('mouseout', vis_unhighlight_stop)
+    .on('mouseover', (d) -> vis_highlight_stop(d, this))
+    .on('mouseout', (d) -> vis_unhighlight_stop(d, this))
+
+#  Npts = _.flatten(routePath.data()[0].coordinates).length / 2
+#  xPts = (i/xScale.range()[1] for i in range(Npts))
+#  routePath.datum(xPts)
+#    .transition().duration(5000)
+#      .attr('d', line_maker)
+
+#  window.routePath = routePath
+#  return  
   
   line = g.append("path")
     .datum(xScale.range())
@@ -152,7 +187,7 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
       .gravity(0)
       .friction(0.2)
       .charge(-80)
-      .size([g.width, g.height])
+      .size([svg_route.width, svg_route.height])
 
   # create timers to start each bus trip 
   all_timers = []
@@ -186,7 +221,7 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
       class: "bus bus-" + data_trip.id_trip
       width: rScale(rVal(data_stops[0]))
       height: rScale(rVal(data_stops[0]))
-      x: xScale(xVal(data_stops[0]))
+      x: xScaledValBus(data_stops[0], data_trip.trip_direction)
       y: yScale(yValBus(data_trip.trip_direction))
     
     # bus = g.append("circle").attr
@@ -261,7 +296,6 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
   
     show_departing_passengers = (stop_number) ->
       stop = data_stops[stop_number]
-    
       departing_data = ({
         xEnd: xScale(xVal(stop)) + (Math.random() - 0.5) * width / data_stops.length,
         yEnd: randomYpos(data_trip.trip_direction)
@@ -274,7 +308,7 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
       departing_passengers.attr
           class: "passenger-departing passenger-departing-#{id_trip}-#{stop_number}"
           cx: xScale(xVal(stop))
-          cy: yScale(yValDoorsBus(data_trip.trip_direction))
+          cy: yScaledValDoorsBus(data_trip.trip_direction)
           r: 3
         .style
           fill: '#eee' # color_filler(stop_number) 
@@ -323,14 +357,14 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
       bus.transition()
         .duration(duration_motion)
         .attr
-          x: xScale(xVal(data_stops[stop_number]))
+          x: xScaledValBus(data_stops[stop_number], data_trip.trip_direction)
     
 
       arrival_fn = () ->  
         # upon arrival at stop
         if stop_number < (data_stops.length - 1)
           # update the clock display
-          time_display.text(time_formatter(tVal(data_stops[stop_number])))
+          updateTime(timeDisplay, tVal(data_stops[stop_number]))
           # update highlighting on map
           vis_highlight_stop(data_stops[stop_number])
           # passengers get out
@@ -349,7 +383,7 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
             vis_unhighlight_stop(data_stops[stop_number])
             move_bus(stop_number + 1)
             return
-          setTimeout(move_to_next_fn, duration_stopped)
+          map.visTimers.push(setTimeout(move_to_next_fn, duration_stopped))
         else
           # done with trip
           bus.remove() 

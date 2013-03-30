@@ -11,6 +11,7 @@ class LeafletMap
 
     @_loadData()
     @busStopRadius = 3
+    @currentRouteID = null
     
   # Convert back to lat-long coordinates
   projection: (x) ->
@@ -50,6 +51,8 @@ class LeafletMap
         attribution: "",
         maxZoom: 16
     }))
+    
+    d3.select('.leaflet-control-attribution').remove()
     return
 
   _generateSvg: ->
@@ -99,12 +102,7 @@ class LeafletMap
     route = d3.select(elem)
     route.classed "highlighted", false
 
-  _routeClick: (elem, d, stops) =>
-    __this = @
-    route = d3.select(elem)
-    id_route = d.properties.id_route
-    d3.select('#route_name').text(d.properties.name_route)
-
+  cancelOtherVis: () =>
     # stop loading any other route data
     req.abort() for req in @_remoteRequests
     # cancel the timers from existing visualizations
@@ -114,15 +112,41 @@ class LeafletMap
 
     # clear out any existing visualizations
     d3.selectAll('#route_vis > svg').remove()
+  
+    #unhighight stops
+    @g.selectAll("circle.bus-stop")
+      .classed('highlighted', false)
+    
+  
+  newRouteVis: (filename) =>
+    self = @
+    console.log('loading', filename)
+    
+    call_ts_vis = (error, data) -> show_ts(error, data, self)
+    @_remoteRequests.push(d3.json(filename, call_ts_vis))
+
+  dateChange: () =>
+    __this = @
+    @cancelOtherVis()
+    
+    date = $('select#weekday option:selected').val()    
+    filename = "/data/#{@city}/timeseries/#{date}_#{@currentRouteID}.json"
+    @newRouteVis(filename)
+
+  _routeClick: (elem, d) =>
+    __this = @
+    route = d3.select(elem)
+    id_route = d.properties.id_route
+    @currentRouteID = id_route
+    d3.selectAll('#route_name').text(toTitleCase(d.properties.name_route))
+
+    @cancelOtherVis()
 
     # load up the timeseries data for the route
     # TODO - date picker
-    date = '20121003'
+    date = $('select#weekday option:selected').val()    
     filename = "/data/#{@city}/timeseries/#{date}_#{id_route}.json"
-    console.log('loading', filename)
-    
-    call_ts_vis = (error, data) -> show_ts(error, data, stops, __this)
-    @_remoteRequests.push(d3.json(filename, call_ts_vis))
+    @newRouteVis(filename)      
 
   _loadData: ->
     d3.json "/data/#{@city}/stops.json", (stops) =>
@@ -157,13 +181,13 @@ class LeafletMap
       
       d3.json "/data/#{@city}/routes.json", (routes) =>
         route_geoms = topojson.object(routes, routes.objects.routes).geometries
-        min_sum_sq = (arr) -> 
-          # takes an array of lat longs
-          Math.pow(d3.min(arr, (d) -> d[0]), 2) + Math.pow(d3.min(arr, (d) -> d[1]), 2)
-        # sort the sub lines of a multistring path
-        route_geoms.forEach (route, i) ->
-          route.coordinates.sort (a, b) ->
-            d3.ascending(min_sum_sq(a), min_sum_sq(b))
+#        min_sum_sq = (arr) -> 
+#          # takes an array of lat longs
+#          Math.pow(d3.min(arr, (d) -> d[0]), 2) + Math.pow(d3.min(arr, (d) -> d[1]), 2)
+#        # sort the sub lines of a multistring path
+#        route_geoms.forEach (route, i) ->
+#          route.coordinates.sort (a, b) ->
+#            d3.ascending(min_sum_sq(a), min_sum_sq(b))
             
           
         
@@ -176,9 +200,12 @@ class LeafletMap
             .style("stroke", (d) -> __this._colorScale(d.properties.id_route))
             .on("mouseover", (d) -> __this._routeMouseover(this, d))
             .on("mouseout", (d) -> __this._routeMouseout(this, d))
-            .on("click", (d) -> __this._routeClick(this, d, stops))
+            .on("click", (d) -> __this._routeClick(this, d))
+            
+        # set up a date picker 
+        $('select#weekday').click(@dateChange)
         # start the thing off with a default route
-        @_routeClick(null, routes.objects.routes.geometries[0], stops)
+        @_routeClick(null, routes.objects.routes.geometries[0])
         return
       return
 
