@@ -23,8 +23,9 @@ def df_to_json(df, filename=''):
     if not (df.count() == len(df)).all():
         # some cols have NaNs - JSON doesn't like these
         nan_cols = df.count() != len(df)
-        for col in nan_cols[nan_cols]:
-            df[col] = df[col].astype(str).fillna('null')
+        for col in nan_cols[nan_cols].index:
+            print 'warning: null values in {}'.format(col)
+            df[col] = df[col].astype(str)
     
     x = [dict(zip([df.index.name] + list(df.columns), vals)) for vals in df.reset_index().T.to_dict('l').values()]
     

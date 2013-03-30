@@ -81,8 +81,9 @@ for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
         for i, stop in stop_locations.iterrows():
             stop_locations.ix[i, 'distance'] = geneva_dist(trips, stop, city)
     else:
-        stop_locations = get_distances(
-            trips, stop_locations, city, city_stops_topojson=city_stops_topojson)
+        if len(stop_locations) > 0:
+            stop_locations = get_distances(
+                trips, stop_locations, city, city_stops_topojson=city_stops_topojson)
     stop_locations = stop_locations.set_index('id_stop')
     
     # get the trip order correct
