@@ -17,17 +17,28 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
   
   # setup container
   margin =
-    top: 20
+    top: 3
     right: 20
-    bottom: 20
+    bottom: 3
     left: 20
   width = map._svgMap.attr('width') - margin.left - margin.right
-  height = map._svgMap.attr('height') / 3.5 - margin.top - margin.bottom
-  svg_route = d3.select('#route_vis').append('svg').attr
+  height = map._svgMap.attr('height') / 4 - margin.top - margin.bottom
+  
+  # TODO 
+  # make g element as subset of map.g
+  # make rect background
+  # make the standard g element
+  g = map.g.append('g').attr
+    id: 'route-vis'
     width: width + margin.left + margin.right
     height: height + margin.top + margin.bottom
-  g = svg_route.append("g").attr
     transform: translate(margin.left, margin.top)
+    
+  # svg_route = d3.select('#route_vis').append('svg').attr
+  #   width: width + margin.left + margin.right
+  #   height: height + margin.top + margin.bottom
+  # g = svg_route.append("g").attr
+  #   transform: translate(margin.left, margin.top)
       
   time_display = d3.select('#time_display')
   
@@ -56,16 +67,19 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
       0.5
   
   yValBus = (dir) ->
-    if dir then 0.45 else 0.65
+    if dir then 0.45 else 0.69
+  
+  yValDoorsBus = (dir) ->
+    yValBus(dir) - (if dir then rScale.range()[1] else 0)
     
   yPosPassengers = (dir) -> 
-    if dir then yScale(0.38) else yScale(0.62)
+    if dir then yScale(0.20) else yScale(0.69)
   randomYpos = (trip_direction) ->
     # inbound enters/exits below, outbound enters/exits above
     if trip_direction
-      yScale(getRandomRange(0, yValBus(trip_direction)))
+      yScale(getRandomRange(0, yValDoorsBus(trip_direction)))
     else
-      yScale(getRandomRange(yValBus(trip_direction), 1))
+      yScale(getRandomRange(yValDoorsBus(trip_direction), 1))
             
   color_filler = d3.scale.category20()
   
@@ -75,19 +89,18 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
     .y((d) -> yPos)
   
   # measure the stop distances in d3
-  data_daily.stop_locations.forEach (d, i) ->
-    circ = d3.select("circle.bus-stop-#{d.id_stop}")
-    d.x = +circ.attr('cx') 
-    d.y = +circ.attr('cy')
-    return
   route_path = d3.select("path.bus-route-#{data_daily.id_route}").moveToFront()
-  calcDistanceAlongPath(data_daily.stop_locations, route_path.node())
+  #   circ = d3.select("circle.bus-stop-#{d.id_stop}")
+  #   d.x = +circ.attr('cx') 
+  #   d.y = +circ.attr('cy')
+  #   return
+  # calcDistanceAlongPath(data_daily.stop_locations, route_path.node())
 
   
   # define xVal to lookup the distance from the stops data
   stop_dists = {}  # make a hash keyed by stop id
   data_daily.stop_locations.forEach (d, i) -> 
-    stop_dists[d.id_stop] = d.distance
+    stop_dists[d.id_stop] = +d.distance
   xVal = (d) -> stop_dists[d.id_stop]
   xScale = d3.scale.linear()
     .domain(d3.extent(data_daily.stop_locations, (d) -> d.distance))
@@ -122,12 +135,14 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
   stops
     .on('mouseover', vis_highlight_stop)
     .on('mouseout', vis_unhighlight_stop)
-    
+  
   line = g.append("path")
     .datum(xScale.range())
     .attr
       d: line_maker
       class: "bus-line"
+    .style
+      stroke: map.g.select("path.bus-route-#{data_daily.id_route}").style('stroke')
 
 
   # basic force layout
@@ -137,7 +152,7 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
       .gravity(0)
       .friction(0.2)
       .charge(-80)
-      .size([svg_route.width, svg_route.height])
+      .size([g.width, g.height])
 
   # create timers to start each bus trip 
   all_timers = []
@@ -220,7 +235,7 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
         .transition(boarding_duration)
         .attr
           cx: (d) -> xScale(xVal(data_stops[d.stop_number]))
-          cy: randomYpos(data_trip.trip_direction)
+          cy: (d) -> yScale(yValBus(data_stops[d.stop_number]))
       drop_circles = () -> 
         passenger_circles.exit().remove()
         # HACK - cleanup left behind passegers
@@ -259,10 +274,10 @@ window.show_ts = (error, data_daily, data_stop_locations, map) ->
       departing_passengers.attr
           class: "passenger-departing passenger-departing-#{id_trip}-#{stop_number}"
           cx: xScale(xVal(stop))
-          cy: yScale(yValBus(data_trip.trip_direction))
+          cy: yScale(yValDoorsBus(data_trip.trip_direction))
           r: 3
         .style
-          fill: color_filler(stop_number)
+          fill: '#eee' # color_filler(stop_number) 
           stroke: d3.rgb(color_filler(stop_number)).darker(2)
           "stroke-width": 1.5
       # set the duration of the departure
