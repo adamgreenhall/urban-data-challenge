@@ -31,7 +31,7 @@ class LeafletMap
         "margin-left": "#{bottomLeft[0]}px"
         "margin-top":  "#{topRight[1]}px"
 
-    @_g.attr("transform", translate(-bottomLeft[0], -topRight[1]))
+    @g.attr("transform", translate(-bottomLeft[0], -topRight[1]))
 
     if @_busStops isnt `undefined`
       @_busStops.attr
@@ -55,7 +55,7 @@ class LeafletMap
   _generateSvg: ->
     __this = @
     @_svgMap     = d3.select(@_map.getPanes().overlayPane).append("svg")
-    @_g          = @_svgMap.append("g").attr("class", "leaflet-zoom-hide")
+    @g          = @_svgMap.append("g").attr("class", "leaflet-zoom-hide")
     @_path       = d3.geo.path().projection((x) -> __this.projection(x))
     @_tooltip    = d3.select("#tooltip")
     return
@@ -132,7 +132,7 @@ class LeafletMap
         coordinates: stops.objects.stops.geometries.map((d) -> d.coordinates)
       ).coordinates
 
-      @_busStops = @_g.selectAll("circle.bus-stop")
+      @_busStops = @g.selectAll("circle.bus-stop")
         .data(stops.objects.stops.geometries).enter()
         .append("circle")
           .attr
@@ -154,10 +154,21 @@ class LeafletMap
 
       @_map.on("viewreset", () -> __this.redraw())
       @redraw()
-
+      
       d3.json "/data/#{@city}/routes.json", (routes) =>
-        @_busRoutes = @_g.selectAll("path.bus-route")
-          .data(topojson.object(routes, routes.objects.routes).geometries).enter()
+        route_geoms = topojson.object(routes, routes.objects.routes).geometries
+        min_sum_sq = (arr) -> 
+          # takes an array of lat longs
+          Math.pow(d3.min(arr, (d) -> d[0]), 2) + Math.pow(d3.min(arr, (d) -> d[1]), 2)
+        # sort the sub lines of a multistring path
+        route_geoms.forEach (route, i) ->
+          route.coordinates.sort (a, b) ->
+            d3.ascending(min_sum_sq(a), min_sum_sq(b))
+            
+          
+        
+        @_busRoutes = @g.selectAll("path.bus-route")
+          .data(route_geoms).enter()
           .append("path").attr(
             class: (d) -> "bus-route bus-route-#{d.properties.id_route}"
             d: @_path
@@ -166,7 +177,6 @@ class LeafletMap
             .on("mouseover", (d) -> __this._routeMouseover(this, d))
             .on("mouseout", (d) -> __this._routeMouseout(this, d))
             .on("click", (d) -> __this._routeClick(this, d, stops))
-
         # start the thing off with a default route
         @_routeClick(null, routes.objects.routes.geometries[0], stops)
         return

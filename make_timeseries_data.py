@@ -1,11 +1,9 @@
 import pandas as pd
-import numpy as np
-import topojson
 import utils
 import json
 import os
 import argparse
-
+from stop_distance import get_distances, geneva_dist, load_stops_topojson
 utils.ipy_on_exception()
 
 parser = argparse.ArgumentParser()
@@ -43,22 +41,19 @@ for tcol in filter(lambda c: c in time_cols, df.columns):
         pd.DatetimeIndex(df[tcol].copy()).tz_localize(timezones[city])
         ).apply(utils.unixtime).values
 
-
-# load the lat/long of the stops
-print('load the json stops data and add the lat/long info')
-with open('web/data/{}/stops.json'.format(city), 'r') as f: 
-    stops = json.loads(f.read())
-# stops may belong to many routes, just take the first 
-stop_properties = pd.DataFrame(
-    topojson.properties(stops, 'stops')) \
-    .set_index('id_stop')[['latitude', 'longitude']] \
-    .groupby(level=0).first()
-# join lat/long to the timeseries data
-df = df.join(stop_properties, on='id_stop')
+# 
+if city == 'san-francisco':
+    city_stops_topojson = load_stops_topojson(city)
+else:
+    city_stops_topojson = None
 
 
 # write timeseries json to files
 # one file per route per day
+trip_cols = ['count', 'count_boarding', 'count_exiting'] + \
+    filter(lambda c: c in time_cols, df.columns)
+
+
 os.system('mkdir -p web/data/{}/timeseries'.format(city))  # setup the dir 
 for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
     filename = 'web/data/{c}/timeseries/{d}_{r}.json'.format(
@@ -66,14 +61,30 @@ for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
     
     # get the unique stops
     stops_inbound = pd.Index(trips.xs(1, level='trip_direction').id_stop.unique())
-    stops_outbound = pd.Index(trips.xs(0, level='trip_direction').id_stop.unique())
+    try: 
+        stops_outbound = pd.Index(trips.xs(0, level='trip_direction').id_stop.unique())
+    except KeyError:
+        stops_outbound = pd.Index([])
     stops_both_directions = stops_inbound.intersection(stops_outbound)
-    stops_inbound = stops_inbound.diff(stops_outbound)
-    stops_outbound = stops_outbound.diff(stops_inbound)
-    stop_locations = \
-        [dict(id_stop=str(s), direction='inbound') for s in stops_inbound] + \
-        [dict(id_stop=str(s), direction='outbound') for s in stops_outbound] + \
-        [dict(id_stop=str(s), direction='both') for s in stops_both_directions]
+    stops_inbound = stops_inbound.diff(stops_both_directions)
+    stops_outbound = stops_outbound.diff(stops_both_directions)
+    # TODO - add stop distance
+        
+    stop_locations = pd.DataFrame(
+        [dict(id_stop=s, direction='inbound') for s in stops_inbound] + \
+        [dict(id_stop=s, direction='outbound') for s in stops_outbound] + \
+        [dict(id_stop=s, direction='both') for s in stops_both_directions],
+        columns=['id_stop', 'direction', 'distance']
+        )
+    
+    if city == 'geneva':
+        for i, stop in stop_locations.iterrows():
+            stop_locations.ix[i, 'distance'] = geneva_dist(trips, stop, city)
+    else:
+        if len(stop_locations) > 0:
+            stop_locations = get_distances(
+                trips, stop_locations, city, city_stops_topojson=city_stops_topojson)
+    stop_locations = stop_locations.set_index('id_stop')
     
     # get the trip order correct
     # trips should be ordered by their first arrival time
@@ -88,12 +99,10 @@ for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
             .sort('time_arrival')\
             .set_index('id_stop')
         
-        # FIXME - ensure no nan make it into json
-        
         trip_json = {
             'id_trip': str(id_trip),
             'trip_direction': int(trip_direction),
-            'stops': utils.df_to_json(trip)
+            'stops': utils.df_to_json(trip[trip_cols])
         }
         trips_json.append(trip_json)
     
@@ -101,10 +110,13 @@ for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
     all_json = {
         'date': date.strftime('%Y%m%d'),
         'id_route': str(id_route),
-        'stop_locations': stop_locations,
+        'stop_locations': utils.df_to_json(stop_locations),
         'trips': trips_json,
     }
     
     with open(filename, 'w+') as f:
         print filename
-        f.write(json.dumps(all_json))
+        try: 
+            f.write(json.dumps(all_json))
+        except TypeError:
+            utils.set_trace()
