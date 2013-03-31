@@ -19,7 +19,8 @@ def properties(json, obj_name):
     properties = []
     for obj in json['objects'][obj_name]['geometries']:
         obj_prop = obj['properties'].copy()
-        obj_prop.update(lat_long(obj['coordinates'], **json['transform']))
+        if 'coordinates' in obj:
+            obj_prop.update(lat_long(obj['coordinates'], **json['transform']))
         properties.append(obj_prop)
     return properties
 
