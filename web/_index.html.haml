@@ -1,5 +1,7 @@
 %head
   %title Passengers
+  %link{:href => "/img/favicon.png", :rel => "icon", :type => "image/png"}/
+  %link{:href => "favicon.ico", :rel => "shortcut icon"}/
   %link{:href => "/styles/leaflet.css", :rel => "stylesheet"}/
   %link{:href => "/styles/vis.css", :rel => "stylesheet"}/
   %link{:href => "/styles/bootstrap.min.css", :rel => "stylesheet"}/
@@ -14,38 +16,47 @@
   %link{:href => "http://fonts.googleapis.com/css?family=Coustard", :rel => "stylesheet", :type => "text/css"}/  
   %meta{:content=>"width=device-width, initial-scale=1.0", :name=>"viewport"}
 %body
-  .container
-    #tooltip.hidden
-      %p
-        %span.route-name{:style => "font-weight: bold"}
-        %span.stop-name
-    .row 
-      #route_vis_panel
-        %h3#route_question.normalOperation
-          %span what is riding
-          %span#route_name 1 California
-          %span like at
-        %h3.errorState.hidden
-          %span Sorry, we don't see
-          %span#route_name 1 California
-        %h3
-          %span#time-display
-            %span.time.normalOperation{:style=>'width: 3em; float: left;'} 05:00
-            %span.ampm.normalOperation{:style=>'width: 2em; float: left; text-transform: lowercase;'} AM
-            %span.normalOperation on a
-            %span.errorState.hidden running on
-          %span
-            %select#weekday
-              %option{:value=>'20121001'} Monday
-              %option{:value=>'20121002'} Tuesday
-              %option{:value=>'20121003'} Wednesday
-              %option{:value=>'20121004'} Thursday
-              %option{:value=>'20121005'} Friday
-              %option{:value=>'20121006'} Saturday
-              %option{:value=>'20121007'} Sunday
-          %span.normalOperation ?
-        #route_vis
-      #map
+  #tooltip.hidden
+    %p
+      %span.route-name{:style => "font-weight: bold"}
+      %span.stop-name
+  #route_vis_panel
+    %h3#route_question.normalOperation
+      %span what is riding
+      %span#route_name 1 California
+      %span like at
+    %h3.errorState.hidden
+      %span Sorry, we don't see
+      %span#route_name 1 California
+    %h3
+      %span#time-display
+        %span.time.normalOperation{:style=>'width: 3em; float: left;'} 05:00
+        %span.ampm.normalOperation{:style=>'width: 2em; float: left; text-transform: lowercase;'} AM
+        %span.normalOperation on a
+        %span.errorState.hidden running on
+      %span
+        %select#weekday
+          %option{:value=>'20121001'} Monday
+          %option{:value=>'20121002'} Tuesday
+          %option{:value=>'20121003'} Wednesday
+          %option{:value=>'20121004'} Thursday
+          %option{:value=>'20121005'} Friday
+          %option{:value=>'20121006'} Saturday
+          %option{:value=>'20121007'} Sunday
+      %span.normalOperation ?
+    #route_vis
+  #map
+  
+  #city-switcher
+    %ul
+      %li 
+        %a{:href=> 'index.html'} San Francisco
+      %li 
+        %a{:href=> 'geneva.html'} Geneva
+      %li 
+        %a{:href=> 'zurich.html'} Zurich
+      
+  
   :javascript
     city_name = "#{city_name}"
   %script{:src => "/javascript/stop_map.js"}

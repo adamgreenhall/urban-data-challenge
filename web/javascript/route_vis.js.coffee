@@ -1,3 +1,13 @@
+colorOfDayScale = d3.scale.linear()
+  .domain([0, 23])
+colorOfDayScale.domain([0.2, .5, 1].map(colorOfDayScale.invert))
+colorOfDayScale.range(["#3ea5f4", "#f4e83e", "#4e9bed"])
+
+colorOfDay = (t) -> 
+  console.log(t, +d3.time.format('%H')(new Date(t * 1000)), colorOfDayScale(+d3.time.format('%I')(new Date(t * 1000))))
+  d3.rgb(colorOfDayScale(+d3.time.format('%H')(new Date(t * 1000))))
+
+
 window.show_ts = (error, data_daily, map) ->
   
   if error
@@ -31,8 +41,8 @@ window.show_ts = (error, data_daily, map) ->
     right: 20
     bottom: 3
     left: 20
-  width = map._svgMap.attr('width') - margin.left - margin.right
-  height = map._svgMap.attr('height') / 4 - margin.top - margin.bottom
+  width = map.getWidth() - margin.left - margin.right
+  height = map.getHeight() / 4 - margin.top - margin.bottom
     
   svg_route = d3.select('#route_vis').append('svg').attr
     width: width + margin.left + margin.right
@@ -54,7 +64,7 @@ window.show_ts = (error, data_daily, map) ->
   
   # a linear scale mapping the time difference (in UTC seconds)
   # to the length of the visualization playback (Tmax)
-  Tmax = 5 * 60 * 1000  # 5min
+  Tmax = 2 * 60 * 1000  # 5min
   tScale = d3.scale.linear()
     .domain(nested_min_max(data_daily.trips, 'stops', tVal))
     .range([0, Tmax])
@@ -191,14 +201,21 @@ window.show_ts = (error, data_daily, map) ->
 
   # create timers to start each bus trip 
   all_timers = []
-  data_daily.trips.forEach (data_trip, i) ->  
-    data_trip.Tstart = tScale(d3.min(data_trip.stops, tVal))
-    
+  data_daily.trips.forEach (data_trip, i) -> 
+    data_trip.realTimeStart = d3.min(data_trip.stops, tVal)
+    data_trip.Tstart = tScale(data_trip.realTimeStart)
+  
+  data_daily.trips.forEach (data_trip, i) ->     
     # debugging HACK - only run 2 trips
     # return unless i<=1
     
-    # TODO - make sure cancelling the timers is working 
-    start_trip = () -> begin_bus_trip(data_trip)
+    start_trip = () -> 
+      duration = data_trip.Tstart - (if i > 0 then data_daily.trips[i-1].Tstart else 0)
+      d3.select('#route_vis_panel')
+        .transition().duration(duration)
+          .style('background-color', colorOfDay(data_trip.realTimeStart))
+    
+      begin_bus_trip(data_trip)
     map.visTimers.push(setTimeout(start_trip, data_trip.Tstart))
 
   
@@ -223,6 +240,8 @@ window.show_ts = (error, data_daily, map) ->
       height: rScale(rVal(data_stops[0]))
       x: xScaledValBus(data_stops[0], data_trip.trip_direction)
       y: yScale(yValBus(data_trip.trip_direction))
+    
+    
     
     # bus = g.append("circle").attr
     #   class: "bus bus-" + data_trip.id_trip

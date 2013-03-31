@@ -18,6 +18,11 @@ class LeafletMap
     point = @_map.latLngToLayerPoint(new L.LatLng(x[1], x[0]))
     [point.x, point.y]
 
+  getWidth: ->
+    $('#' + @mapContainerId).width()    
+  getHeight: ->
+    $('#' + @mapContainerId).height()
+
   redraw: ->
     return if @_bounds is `undefined`
 
@@ -32,6 +37,7 @@ class LeafletMap
         "margin-left": "#{bottomLeft[0]}px"
         "margin-top":  "#{topRight[1]}px"
 
+
     @g.attr("transform", translate(-bottomLeft[0], -topRight[1]))
 
     if @_busStops isnt `undefined`
@@ -43,8 +49,9 @@ class LeafletMap
       @_busRoutes.attr("d", @_path)
 
     return
-
-  _generateMap: ->
+      
+  
+  _generateMap: ->   
     @_map = L.map(@mapContainerId, {
       center: CITY_CENTER[@city],
       zoom:   13}).addLayer(new L.tileLayer("http://{s}.tile.cloudmade.com/62541519723e4a6abd36d8a4bb4d6ac3/998/256/{z}/{x}/{y}.png", {
@@ -180,19 +187,8 @@ class LeafletMap
       @redraw()
       
       d3.json "/data/#{@city}/routes.json", (routes) =>
-        route_geoms = topojson.object(routes, routes.objects.routes).geometries
-#        min_sum_sq = (arr) -> 
-#          # takes an array of lat longs
-#          Math.pow(d3.min(arr, (d) -> d[0]), 2) + Math.pow(d3.min(arr, (d) -> d[1]), 2)
-#        # sort the sub lines of a multistring path
-#        route_geoms.forEach (route, i) ->
-#          route.coordinates.sort (a, b) ->
-#            d3.ascending(min_sum_sq(a), min_sum_sq(b))
-            
-          
-        
         @_busRoutes = @g.selectAll("path.bus-route")
-          .data(route_geoms).enter()
+          .data(topojson.object(routes, routes.objects.routes).geometries).enter()
           .append("path").attr(
             class: (d) -> "bus-route bus-route-#{d.properties.id_route}"
             d: @_path
@@ -203,7 +199,7 @@ class LeafletMap
             .on("click", (d) -> __this._routeClick(this, d))
             
         # set up a date picker 
-        $('select#weekday').click(@dateChange)
+        $('select#weekday').change(@dateChange)
         # start the thing off with a default route
         @_routeClick(null, routes.objects.routes.geometries[0])
         return
