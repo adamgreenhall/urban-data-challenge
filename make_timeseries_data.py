@@ -3,7 +3,10 @@ import utils
 import json
 import os
 import argparse
+import datetime
 from stop_distance import get_distances, geneva_dist, load_stops_topojson
+
+from utils import set_trace
 utils.ipy_on_exception()
 
 parser = argparse.ArgumentParser()
@@ -28,20 +31,16 @@ df = pd.read_csv('data/common_format/{}.csv'.format(city),
 df = df.drop_duplicates(cols=['id_stop', 'time_arrival'])
 
 
-# convert times to unix time
-print('convert times to unix time')
+# convert times to timestamps
+# ignore the scheduled times 
 time_cols = [
-    'time_arrival', 'time_scheduled_arrival',
-    'time_departure', 'time_scheduled_departure'
+    'time_arrival', 'time_departure',
+    # 'time_scheduled_arrival', 'time_scheduled_departure'
     ]   
-# convert to d.t. index and set timezone 
-# so that unix time gets created properly
 for tcol in filter(lambda c: c in time_cols, df.columns):
-    df[tcol] = pd.Series(
-        pd.DatetimeIndex(df[tcol].copy()).tz_localize(timezones[city])
-        ).apply(utils.unixtime).values
+    df[tcol] = pd.DatetimeIndex(df[tcol]).values
 
-# 
+
 if city != 'geneva':
     city_stops_topojson = load_stops_topojson(city)
 else:
@@ -65,10 +64,10 @@ for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
         stops_outbound = pd.Index(trips.xs(0, level='trip_direction').id_stop.unique())
     except KeyError:
         stops_outbound = pd.Index([])
+    
     stops_both_directions = stops_inbound.intersection(stops_outbound)
     stops_inbound = stops_inbound.diff(stops_both_directions)
     stops_outbound = stops_outbound.diff(stops_both_directions)
-    # TODO - add stop distance
         
     stop_locations = pd.DataFrame(
         [dict(id_stop=s, direction='inbound') for s in stops_inbound] + \
@@ -76,10 +75,11 @@ for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
         [dict(id_stop=s, direction='both') for s in stops_both_directions],
         columns=['id_stop', 'direction', 'distance']
         )
-    
+
+    # get linear stop distances    
     if city == 'geneva':
         for i, stop in stop_locations.iterrows():
-            stop_locations.ix[i, 'distance'] = geneva_dist(trips, stop, city)
+            stop_locations.ix[i, 'distance'] = geneva_dist(trips, stop)
     else:
         if len(stop_locations) > 0:
             stop_locations = get_distances(
@@ -103,6 +103,17 @@ for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
             .reset_index(drop=True)\
             .sort('time_arrival')\
             .set_index('id_stop')
+
+        tStart = trip.time_arrival.min()
+        if tStart.hour < 2 and tStart.date() == date.date():
+            # this is a trip finishing up in the middle of the night
+            continue
+        
+        # timezones are terrible to deal with in javascript
+        # so convert each timestamp to unix time (in local time, but pretend it is in in UTC)
+        # on the other end, use d3.time.format.utc to read times (as if in UTC)
+        for tcol in filter(lambda c: c in time_cols, df.columns):
+            trip[tcol] = trip[tcol].apply(utils.unixtime).values
         
         trip_json = {
             'id_trip': str(id_trip),

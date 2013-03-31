@@ -4,9 +4,15 @@ colorOfDayScale.domain([0.2, .5, 1].map(colorOfDayScale.invert))
 colorOfDayScale.range(["#3ea5f4", "#f4e83e", "#4e9bed"])
 
 colorOfDay = (t) -> 
-  console.log(t, +d3.time.format('%H')(new Date(t * 1000)), colorOfDayScale(+d3.time.format('%I')(new Date(t * 1000))))
-  d3.rgb(colorOfDayScale(+d3.time.format('%H')(new Date(t * 1000))))
+  d3.rgb(colorOfDayScale(+d3.time.format.utc('%H')(new Date(t * 1000))))
 
+updateTime = (timeDisplay, t) ->
+  curTime = new Date(t * 1000)
+  timeDisplay.time.text(d3.time.format.utc('%I:%M')(curTime))
+  timeDisplay.ampm.text(d3.time.format.utc('%p')(curTime))
+  timeDisplay.weekday.text(d3.time.format.utc('%A')(curTime))
+
+playbackTmax = 5 * 60 * 1000  # 5min
 
 window.show_ts = (error, data_daily, map) ->
   
@@ -23,11 +29,6 @@ window.show_ts = (error, data_daily, map) ->
   tDepartureVal = (d) -> d.time_departure
   rVal = (d) -> d.count  # passenger count
   
-  updateTime = (timeDisplay, t) ->
-    curTime = new Date(t * 1000)
-    timeDisplay.time.text(d3.time.format('%I:%M')(curTime))
-    timeDisplay.ampm.text(d3.time.format('%p')(curTime))
-    timeDisplay.weekday.text(d3.time.format('%A')(curTime))
   
   fraction_stopped_time = 
     deptaring: 2/5
@@ -63,11 +64,10 @@ window.show_ts = (error, data_daily, map) ->
     .text('')
   
   # a linear scale mapping the time difference (in UTC seconds)
-  # to the length of the visualization playback (Tmax)
-  Tmax = 2 * 60 * 1000  # 5min
+  # to the length of the visualization playback (playbackTmax)
   tScale = d3.scale.linear()
     .domain(nested_min_max(data_daily.trips, 'stops', tVal))
-    .range([0, Tmax])
+    .range([0, playbackTmax])
   yScale = d3.scale.linear()
     .domain([0, 1])
     .range([height - margin.top, 0 + margin.bottom])

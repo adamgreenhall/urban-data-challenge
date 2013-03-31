@@ -148,8 +148,14 @@ def get_direction_dists(df, stop_locations, city, direction='inbound'):
 def geneva_dist(trips, stop):
     # simple lookup of field "distance from start of route" by stop id
     sid = stop['id_stop']
-    dist = trips[trips.id_stop == sid].stop_distance.unique()
-    if len(dist) == 1:
-        return float(dist[0])
+    stop_dists = trips[trips.id_stop == sid].stop_distance.unique()
+    if len(stop_dists) == 1:
+        dist = float(stop_dists[0])
     else:
-        return most_common(trips[trips.id_stop == sid].stop_distance.values.tolist())
+        dist = most_common(trips[trips.id_stop == sid].stop_distance.values.tolist())
+    if stop['direction'] in ['inbound', 'both']:
+        return dist
+    else:
+        # if outbound, get distance from the length of route
+        route_len = trips.xs(0, level='trip_direction').stop_distance.max()
+        return route_len - dist
