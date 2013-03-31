@@ -30,6 +30,38 @@ colorOfDayScale.range(["#01062d","#2b1782","#600eae","#9b13bb","#b13daf","#d086b
 colorOfDay = (t) -> 
   d3.rgb(colorOfDayScale(+d3.time.format.utc('%H')(new Date(t * 1000))))
 
+colorOfTextScale = d3.scale.linear()
+  .domain([0,23])
+colorOfTextScale.domain([0.0,
+ 0.20,
+ 0.21875,
+ 0.23958333333333334,
+ 0.25,
+ 0.2708333333333333,
+ 0.2916666666666667,
+ 0.3125,
+ 0.3333333333333333,
+ 0.375,
+ 0.4166666666666667,
+ 0.5,
+ 0.5416666666666666,
+ 0.5833333333333334,
+ 0.625,
+ 0.6666666666666666,
+ 0.7083333333333334,
+ 0.75,
+ 0.7708333333333334,
+ 0.7916666666666666,
+ 0.8125,
+ 0.8333333333333334,
+ 0.8541666666666666,
+ 0.875,
+ 0.916].map(colorOfDayScale.invert))
+colorOfTextScale.range(["#e5e7f8","#e5e7f8","#f6f2f8","#f6f2f8","#f6f2f8","#d086b5","#000000","#000000","#000000","#000000","#000000","#000000","#000000","#000000","#000000","#000000","#000000","#000000","#000000","#000000","#f6f2f8","#f6f2f8","#f6f2f8","#f6f2f8","#f6f2f8"])
+
+colorOfText = (t) -> 
+  d3.rgb(colorOfTextScale(+d3.time.format.utc('%H')(new Date(t * 1000))))
+   
 updateTime = (timeDisplay, t) ->
   curTime = new Date(t * 1000)
   timeDisplay.time.text(d3.time.format.utc('%I:%M')(curTime))
