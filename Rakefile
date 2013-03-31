@@ -26,21 +26,21 @@ end
 
 task :deploy do
   if clean_working_directory?
-    puts "Checking out deploy branch..."
-    `git checkout deploy --force`
-    puts "Done!"
-    puts "Running stasis..."
-    `cd web; stasis; cd ..`
-    puts "Done!"
-    puts "Commiting changes"
-    `git add . && git commit -am "Deploy on #{Time.now}"`
-    puts "Done!"
-    puts "Pushing to GitHub"
-    `git push origin deploy`
-    puts "Done!"
-    puts "Pushing to Heroku..."
-    `git push heroku deploy:master`
-    puts "Deploy finished!"
+    ensure_success do
+      exec_command_with_output("git checkout deploy --force", "Checking out deploy branch...")
+      puts "Running stasis..."
+      `cd web; stasis; cd ..`
+      puts "Done!"
+      puts "Commiting changes"
+      `git add . && git commit -am "Deploy on #{Time.now}"`
+      puts "Done!"
+      puts "Pushing to GitHub"
+      `git push origin deploy`
+      puts "Done!"
+      puts "Pushing to Heroku..."
+      `git push heroku deploy:master; git checkout master`
+      puts "Deploy finished!"
+    end
   else
     puts <<-EOF
   # ERROR
@@ -56,4 +56,26 @@ end
 
 def clean_working_directory?
   !`git status`.split("\n").grep(/nothing to commit/).empty?
+end
+
+def ensure_success
+  begin
+    yield
+  ensure
+    exec_command_with_output("git checkout master")
+  end
+end
+
+def exec_command_with_output(command, message = nil)
+  puts message if message
+  output = `#{command}`
+  result = $?.success?
+  puts "Done!" if message
+
+  output = output.split("\n")
+  output.each do |line|
+    puts " -- #{line}"
+  end
+
+  result
 end
