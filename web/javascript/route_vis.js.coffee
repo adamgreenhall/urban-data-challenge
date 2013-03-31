@@ -133,7 +133,7 @@ window.show_ts = (error, data_daily, map) ->
 
   # add mouse interaction 
   vis_highlight_stop = (d, elem) -> 
-    map_circle = map.g.select("circle.bus-stop-#{d.id_stop}")
+    map_circle = map.g.selectAll("circle.bus-stop-#{d.id_stop}")
     map_circle
       .moveToFront()
       .classed('highlighted', true)
@@ -155,12 +155,13 @@ window.show_ts = (error, data_daily, map) ->
           y: +vis_circle.attr('cy') - 20
     
   vis_unhighlight_stop = (d, elem) ->
-    map.g.select("circle.bus-stop-#{d.id_stop}")
+    map_circle = map.g.selectAll("circle.bus-stop-#{d.id_stop}")
+    map_circle
       .classed('highlighted', false)
-      .classed('user-highlighted', false)
       .transition()
         .attr('r', map.busStopRadius)
     if elem
+      map_circle.classed('user-highlighted', false)
       d3.select(elem)
         .classed('user-highlighted', false)
         .transition()
