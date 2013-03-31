@@ -28,13 +28,12 @@ task :deploy do
   if clean_working_directory?
     ensure_success do
       exec_command_with_output("git checkout deploy --force", "Checking out deploy branch")
-      #exec_command_with_output("cd web", "Moving to web directory")
-      #exec_command_with_output("stasis", "Running stasis")
-      #exec_command_with_output("cd ..", "Moving back to root directory")
-      #exec_command_with_output("git add . && git commit -am 'Deploy on #{Time.now}'", "Commiting changes")
-      #exec_command_with_output("git push origin deploy", "Pushing to GitHub")
-      #exec_command_with_output("git push heroku deploy:master", "Pushing to Heroku")
-      #exec_command_with_output("git checkout master", "Cleaning up")
+      exec_command_with_output("cd web", "Moving to web directory")
+      exec_command_with_output("stasis", "Running stasis")
+      exec_command_with_output("cd ..", "Moving back to root directory")
+      exec_command_with_output("git add . && git commit -am 'Deploy on #{Time.now}'", "Commiting changes")
+      exec_command_with_output("git push origin deploy", "Pushing to GitHub")
+      exec_command_with_output("git push heroku deploy:master", "Pushing to Heroku")
     end
   else
     puts <<-EOF
@@ -57,12 +56,12 @@ def ensure_success
   begin
     yield
   ensure
-    exec_command_with_output("git checkout master")
+    exec_command_with_output("git checkout master", "Cleaning up")
   end
 end
 
 def exec_command_with_output(command, message = nil)
-  puts message if message
+  puts "#{message}..." if message
   output = `#{command} 2>&1`
   result = $?.success?
 
