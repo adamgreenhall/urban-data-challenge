@@ -23,3 +23,7 @@ task :dev_server do
   # and run stasis on a select group of files
   system("stasis -d 3000 -o #{Dir.glob('*.html*').join(',')},javascript,styles,img")
 end
+
+task :deploy do
+  puts `git status`.split("\n").join(" ")
+end
