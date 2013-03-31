@@ -2,18 +2,28 @@ from utils import set_trace
 import json
 import topojson
 import pandas as pd
+import numpy as np
 
 def load_stops_topojson(city):    
     # load the lat/long of the stops
-    print('load the json stops data and add the lat/long info')
-    with open('web/data/{}/stops.json'.format(city), 'r') as f: 
-        stops = json.loads(f.read())
-    # stops may belong to many routes, just take the first 
-    city_stops_topojson = pd.DataFrame(
-        topojson.properties(stops, 'stops')) \
-        .set_index('id_stop')[['latitude', 'longitude']] \
-        .groupby(level=0).first()
-    return city_stops_topojson
+    if city == 'san-francisco':
+        print('load the json stops data and add the lat/long info')
+        with open('web/data/{}/stops.json'.format(city), 'r') as f: 
+            stops = json.loads(f.read())
+        # stops may belong to many routes, just take the first 
+        stops_topojson = pd.DataFrame(
+            topojson.properties(stops, 'stops')) \
+            .set_index('id_stop')[['latitude', 'longitude']] \
+            .groupby(level=0).first()
+    else:
+        print('load the json routes data to get the stop distances')
+        with open('web/data/{}/routes.json'.format(city), 'r') as f: 
+            routes = json.loads(f.read())
+        # stops may belong to many routes, just take the first 
+        stops_topojson = pd.DataFrame(
+            topojson.properties(routes, 'routes'))
+        stops_topojson['id_route'] = stops_topojson.id_route.astype(int)
+    return stops_topojson
 
 def most_common(lst):
     return max(set(lst), key=lst.count)
@@ -21,21 +31,26 @@ def most_common(lst):
 def get_distances(trips, stop_locations, city='san-francisco', 
     city_stops_topojson=None):
     # SF doesn't have squat on info 
-    # Zurich has mileage
 
-    # join lat/long to the timeseries data
-    trips = trips.join(city_stops_topojson, on='id_stop')
+    if city == 'san-francisco':
+        # join lat/long to the timeseries data
+        trips = trips.join(city_stops_topojson, on='id_stop')
+    else:
+        # Zurich has distance from the routes topojson, but indexed differently
+        pass
 
     stop_locations = stop_locations.set_index('id_stop')
     stop_locations = get_direction_dists(
         trips.xs(1, level='trip_direction').reset_index(),
         stop_locations,
         city,
+        city_stops_topojson,
         direction='inbound')
     stop_locations = get_direction_dists(
         trips.xs(0, level='trip_direction').reset_index(),
         stop_locations,
         city,
+        city_stops_topojson,
         direction='outbound')
     return stop_locations.reset_index()
 
@@ -99,11 +114,13 @@ def get_nearest_neightbor(sid, df, ordered_trip):
     
     
     
-def get_direction_dists(df, stop_locations, city, direction='inbound'):
+def get_direction_dists(df, stop_locations, city, stops_topojson, direction='inbound'):
     Nstops = df.id_stop.unique().size
     if Nstops == 0:
         return stop_locations
-    
+
+    if city == 'zurich': return zurich_dist(df, stop_locations, stops_topojson, direction)
+        
     trip_stops = df.groupby('id_trip').apply(lambda grp: grp.id_stop.count())
     if (trip_stops == Nstops).any():
         tid = trip_stops[trip_stops == Nstops].index[0]
@@ -112,7 +129,10 @@ def get_direction_dists(df, stop_locations, city, direction='inbound'):
         # the route never hits all the stops in order in one trip
         # find the stops not in the trip with the most stops 
         # manufacture an orderd trip
-        tid = trip_stops[trip_stops <= Nstops].idxmax()
+        try: tid = trip_stops[trip_stops <= Nstops].idxmax()
+        except ValueError: # nothing in the above select
+            tid = trip_stops.idxmax()
+            
         ordered_trip = df[df.id_trip == tid]
         stop_order = ordered_trip.id_stop.reset_index(drop=True).values.tolist()
         stops_missing = pd.Index(df.id_stop.unique()).diff(stop_order)
@@ -159,3 +179,52 @@ def geneva_dist(trips, stop):
         # if outbound, get distance from the length of route
         route_len = trips.xs(0, level='trip_direction').stop_distance.max()
         return route_len - dist
+        
+def zurich_dist(trips, stop_locations, stops_topojson, direction='inbound'):
+    # get linear stop distances for one direction of one route          
+    if not (direction in stop_locations.direction.values):
+        return stop_locations
+    
+    id_route = trips.id_route.unique()[0]
+    route_stops = stops_topojson[(stops_topojson.id_route == id_route)]
+    route_stop_ids = pd.Index(route_stops.id_stop_start.unique()).union(
+        route_stops.id_stop_end)
+    
+    def get_dist(sid, sid_next):
+        return route_stops[
+            (route_stops.id_stop_start == sid) &\
+            (route_stops.id_stop_end == sid_next)].length_route.values[0]
+    
+    
+    ordered_stop_ids = pd.DataFrame(
+        trips[trips.id_stop.isin(route_stop_ids)]\
+            .groupby('id_stop').seq_stop.last().order())
+    
+
+#    if (ordered_stop_ids.diff() == 0).any():
+#        set_trace()    
+#        ordered_stop_ids = pd.DataFrame(
+#            trips.groupby('id_stop').seq_stop.first().order())
+#         if (ordered_stop_ids.diff() == 0).any():
+#            print('warning: non-unique sequence for stops')    
+    
+    # lookup the distance between stops
+    ordered_stop_ids['distance'] = 0.0
+    for i, sid in enumerate(ordered_stop_ids.index[:-1]):
+        sid_next = ordered_stop_ids.index[i+1]
+        try: ordered_stop_ids.ix[sid_next, 'distance'] = get_dist(sid, sid_next)
+        except IndexError: continue
+        
+    # get the distance from the start of the line
+    ordered_stop_ids['distance'] = ordered_stop_ids.distance.cumsum()
+    
+    # flip the direction of origin
+    if direction == 'outbound': 
+        ordered_stop_ids['distance'] = ordered_stop_ids.distance.max() - ordered_stop_ids.distance
+
+    if (ordered_stop_ids.distance == 0).sum() > 1:
+        print('warning, non-unique sequence for stops')
+
+    stop_locations.ix[stop_locations.direction == direction, 'distance'] = \
+        ordered_stop_ids.distance
+    return stop_locations

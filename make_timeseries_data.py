@@ -66,6 +66,10 @@ for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
         stops_outbound = pd.Index([])
     
     stops_both_directions = stops_inbound.intersection(stops_outbound)
+    if city == 'zurich' and \
+        len(stops_both_directions) == len(stops_inbound) == len(stops_outbound):
+        stops_both_directions = []
+        
     stops_inbound = stops_inbound.diff(stops_both_directions)
     stops_outbound = stops_outbound.diff(stops_both_directions)
         
@@ -75,7 +79,7 @@ for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
         [dict(id_stop=s, direction='both') for s in stops_both_directions],
         columns=['id_stop', 'direction', 'distance']
         )
-
+    
     # get linear stop distances    
     if city == 'geneva':
         for i, stop in stop_locations.iterrows():
@@ -84,7 +88,7 @@ for (date, id_route), trips in df.groupby(level=['date', 'id_route']):
         if len(stop_locations) > 0:
             stop_locations = get_distances(
                 trips, stop_locations, city, city_stops_topojson=city_stops_topojson)
-        
+
     stop_locations = stop_locations.set_index('id_stop')
     stop_locations['direction'] = stop_locations.direction\
         .replace('inbound', 1)\
