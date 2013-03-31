@@ -56,4 +56,6 @@ end
 
 def clean_working_directory?
   !`git status`.split("\n").grep("nothing to commit").empty?
+  puts `git status`.split("\n").grep("nothing to commit").inspect
+  false
 end
