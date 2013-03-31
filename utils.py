@@ -36,7 +36,11 @@ def df_to_json(df, filename=''):
 
 def unixtime(dt):
     '''convert a Datetime to a unix timestamp'''
-    return timegm(dt.timetuple())
+    try: 
+        return timegm(dt.timetuple())
+    except: 
+        #not a time
+        return np.nan
     
 def native_types(obj):
     try: return np.asscalar(obj)
