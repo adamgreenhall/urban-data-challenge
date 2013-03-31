@@ -68,7 +68,7 @@ updateTime = (timeDisplay, t) ->
   timeDisplay.ampm.text(d3.time.format.utc('%p')(curTime))
   timeDisplay.weekday.text(d3.time.format.utc('%A')(curTime))
 
-playbackTmax = 5 * 60 * 1000  # 5min
+playbackTmax = 3 * 60 * 1000  # 5min
 
 window.show_ts = (error, data_daily, map) ->
   
