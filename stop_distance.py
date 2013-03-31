@@ -6,23 +6,24 @@ import numpy as np
 
 def load_stops_topojson(city):    
     # load the lat/long of the stops
-    if city == 'san-francisco':
-        print('load the json stops data and add the lat/long info')
-        with open('web/data/{}/stops.json'.format(city), 'r') as f: 
-            stops = json.loads(f.read())
-        # stops may belong to many routes, just take the first 
-        stops_topojson = pd.DataFrame(
-            topojson.properties(stops, 'stops')) \
-            .set_index('id_stop')[['latitude', 'longitude']] \
-            .groupby(level=0).first()
-    else:
-        print('load the json routes data to get the stop distances')
-        with open('web/data/{}/routes.json'.format(city), 'r') as f: 
-            routes = json.loads(f.read())
-        # stops may belong to many routes, just take the first 
-        stops_topojson = pd.DataFrame(
-            topojson.properties(routes, 'routes'))
-        stops_topojson['id_route'] = stops_topojson.id_route.astype(int)
+#    if city == 'san-francisco':
+    print('load the json stops data and add the lat/long info')
+    with open('web/data/{}/stops.json'.format(city), 'r') as f: 
+        stops = json.loads(f.read())
+    # stops may belong to many routes, just take the first 
+    stops_topojson = pd.DataFrame(
+        topojson.properties(stops, 'stops')) \
+        .set_index('id_stop')[['latitude', 'longitude']] \
+        .groupby(level=0).first()
+
+#    else:
+#        print('load the json routes data to get the stop distances')
+#        with open('web/data/{}/routes.json'.format(city), 'r') as f: 
+#            routes = json.loads(f.read())
+#        # stops may belong to many routes, just take the first 
+#        stops_topojson = pd.DataFrame(
+#            topojson.properties(routes, 'routes'))
+#        stops_topojson['id_route'] = stops_topojson.id_route.astype(int)
     return stops_topojson
 
 def most_common(lst):
@@ -32,12 +33,13 @@ def get_distances(trips, stop_locations, city='san-francisco',
     city_stops_topojson=None):
     # SF doesn't have squat on info 
 
-    if city == 'san-francisco':
-        # join lat/long to the timeseries data
-        trips = trips.join(city_stops_topojson, on='id_stop')
-    else:
-        # Zurich has distance from the routes topojson, but indexed differently
-        pass
+    # if city == 'san-francisco':
+    # join lat/long to the timeseries data
+    
+    trips = trips.join(city_stops_topojson, on='id_stop')
+#    else:
+#        # Zurich has distance from the routes topojson, but indexed differently
+#        pass
 
     stop_locations = stop_locations.set_index('id_stop')
     stop_locations = get_direction_dists(
@@ -91,7 +93,9 @@ def get_stop_pos(sid, df, ordered_trip):
         prev_sid = ordered_trip.ix[prev_pos, 'id_stop']    
         next_sid = ordered_trip.ix[next_pos, 'id_stop']
         
-    if next_sid is not None and ordered_trip.ix[prev_pos + 1, 'id_stop'] != next_sid:
+    if next_sid is not None and \
+        len(ordered_trip) > prev_pos + 1 and \
+        ordered_trip.ix[prev_pos + 1, 'id_stop'] != next_sid:
         # TODO could be many stops after this 
         print('warning - could be many stops after this one')
 
@@ -119,7 +123,7 @@ def get_direction_dists(df, stop_locations, city, stops_topojson, direction='inb
     if Nstops == 0:
         return stop_locations
 
-    if city == 'zurich': return zurich_dist(df, stop_locations, stops_topojson, direction)
+    # if city == 'zurich': return zurich_dist(df, stop_locations, stops_topojson, direction)
         
     trip_stops = df.groupby('id_trip').apply(lambda grp: grp.id_stop.count())
     if (trip_stops == Nstops).any():
@@ -142,13 +146,13 @@ def get_direction_dists(df, stop_locations, city, stops_topojson, direction='inb
 
     # now that we finally have an ordered trip
     # compute/lookup the distances and add them to the stop_locations
-    if city == 'zurich':
-        distance = ordered_trip.set_index('id_stop')\
-            .rename(columns={'stop_distance': 'distance'}).distance.copy()
-    elif city == 'san-francisco':
-        distance = pd.Series(
-            topojson.get_linear_dist(ordered_trip),
-            index=ordered_trip.id_stop.values, name='distance')
+#    if city == 'zurich':
+#        distance = ordered_trip.set_index('id_stop')\
+#            .rename(columns={'stop_distance': 'distance'}).distance.copy()
+#    elif city == 'san-francisco':
+    distance = pd.Series(
+        topojson.get_linear_dist(ordered_trip),
+        index=ordered_trip.id_stop.values, name='distance')
 
     if direction == 'outbound':
         # reverse the distances to make inbuond first stop 0 distance
