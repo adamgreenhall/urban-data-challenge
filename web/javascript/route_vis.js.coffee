@@ -56,8 +56,8 @@ colorOfTextScale.domain([0.0,
  0.8333333333333334,
  0.8541666666666666,
  0.875,
- 0.916].map(colorOfDayScale.invert))
-colorOfTextScale.range(["#e5e7f8","#e5e7f8","#f6f2f8","#f6f2f8","#f6f2f8","#d086b5","#000000","#000000","#000000","#000000","#000000","#000000","#000000","#000000","#000000","#000000","#000000","#000000","#000000","#000000","#f6f2f8","#f6f2f8","#f6f2f8","#f6f2f8","#f6f2f8"])
+ 0.916].map(colorOfTextScale.invert))
+colorOfTextScale.range(["#e5e7f8","#e5e7f8","#f6f2f8","#f6f2f8","#f6f2f8","#d086b5","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#f6f2f8","#f6f2f8","#f6f2f8","#f6f2f8","#f6f2f8"])
 
 colorOfText = (t) -> 
   d3.rgb(colorOfTextScale(+d3.time.format.utc('%H')(new Date(t * 1000))))
@@ -270,6 +270,7 @@ window.show_ts = (error, data_daily, map) ->
       d3.select('#route_vis_panel')
         .transition().duration(duration)
           .style('background-color', colorOfDay(data_trip.realTimeStart))
+          .style('color', colorOfText(data_trip.realTimeStart))    
     
       begin_bus_trip(data_trip)
     map.visTimers.push(setTimeout(start_trip, data_trip.Tstart))
