@@ -68,7 +68,7 @@ end
 
 def exec_command_with_output(command, message = nil)
   puts message if message
-  output = `#{command}`
+  output = `#{command} 2>&1`
   result = $?.success?
   puts "Done!" if message
 
@@ -77,5 +77,5 @@ def exec_command_with_output(command, message = nil)
     puts " -- #{line}"
   end
 
-  result
+  raise "Command `#{command}` failed" unless result
 end
