@@ -3,12 +3,17 @@ import pandas as pd
 import json
 from calendar import timegm
 import sys
-from IPython.core import ultratb
+try:
+    from IPython.core import ultratb
+    def ipy_on_exception():
+        sys.excepthook = ultratb.FormattedTB(mode='Verbose',
+            color_scheme='Linux', call_pdb=1, include_vars=0)
+except ImportError:
+    def ipy_on_exception(): 
+        pass
+
 from ipdb import set_trace
 
-def ipy_on_exception():
-    sys.excepthook = ultratb.FormattedTB(mode='Verbose',
-        color_scheme='Linux', call_pdb=1, include_vars=0)
 
 
 def handler(obj):
