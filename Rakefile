@@ -28,9 +28,7 @@ task :deploy do
   if clean_working_directory?
     ensure_success do
       exec_command_with_output("git checkout deploy --force", "Checking out deploy branch")
-      exec_command_with_output("cd web", "Moving to web directory")
-      exec_command_with_output("stasis", "Running stasis")
-      exec_command_with_output("cd ..", "Moving back to root directory")
+      exec_command_with_output("cd web && stasis && cd ..", "Generating public files")
       exec_command_with_output("git add . && git commit -am 'Deploy on #{Time.now}'", "Commiting changes")
       exec_command_with_output("git push origin deploy", "Pushing to GitHub")
       exec_command_with_output("git push heroku deploy:master", "Pushing to Heroku")
