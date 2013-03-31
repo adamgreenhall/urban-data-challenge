@@ -27,7 +27,7 @@ end
 task :deploy do
   if clean_working_directory?
     puts "Checking out deploy branch..."
-    `git checkout deploy`
+    `git checkout deploy --force`
     puts "Done!"
     puts "Running stasis..."
     `cd web; stasis; cd ..`
