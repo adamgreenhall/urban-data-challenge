@@ -81,12 +81,12 @@
         , &
         <a href='http://jaredonline.github.com/about/'>Jared McFarland.</a>
       </p>
-      <a data-toggle='modal' href='#myModal' role='button'>
+      <a data-toggle='modal' href='#about-modal' role='button'>
         About.
       </a>
     </div>
     <!-- Modal -->
-    <div aria-hidden='true' aria-labelledby='myModalLabel' class='modal hide fade' id='myModal' role='dialog' tabindex='-1'>
+    <div aria-hidden='true' aria-labelledby='myModalLabel' class='modal hide fade' id='about-modal' role='dialog' tabindex='-1'>
       <div class='modal-header'>
         <button aria-hidden='true' class='close' data-dismiss='modal' type='button'>x</button>
         <h3 id='myModalLabel'>What's it like to ride on that bus?</h3>
@@ -101,11 +101,11 @@
           <a href='http://urbanprototyping.org/prototype/challenges/urban-data-challenge-zurich-sf-geneva/'>Urban Data Challenge.</a>
           Three cities - Zurich, San Francisco, and Geneva - provided
           <a href='https://github.com/swissnexSF/Urban-Data-Challenge'>public transportation data</a>
-          from the first week of October 1-7, 2012. The data provided: each bus, when it arrived at each stop, and how many people got on and off (as counted by lasers), along with the lat/long of each stop and route. The challenge: merge and compare the datasets to show something new and interesting.
+          from the week of October 1-7, 2012. The data includes each bus, the time it arrived at each stop, and how many people got on and off (as counted by lasers), along with the lat/long of each stop and route. The challenge: use the datasets to show something new and interesting.
         </p>
         <h4>We found:</h4>
         <p>
-          Swiss cities kick San Francisco's butt at public transit ridership.
+          Swiss cities have a much higher transit ridership and more vehicles on a line at a given time.
         </p>
         <h4>Geeky details</h4>
         <h6>Cleaning up the data</h6>
@@ -115,13 +115,13 @@
           <a href='http://ipython.org/notebook.html'>IPython Notebook</a>
           and
           <a href='http://pandas.pydata.org/'>Pandas</a>
-          this was less painful than it sounds.
+          this was easier than it sounds.
         </p>
         <h6>Visualizing the data</h6>
         <p>
           From there,
           <a href='http://d3js.org/'>d3.js</a>
-          takes over. That simulation you're watching? The time is scaled to real time - there is a constant speed up factor. We kick off a bunch of d3 timers - one for every trip a bus takes along the line. Then, within each trip, more timers get kicked off to add the waiting passengers to each stop and to move the bus so it arrives at each stop at the proper time. The waiting passengers arrive at a random time between when the bus is a few stops away and when it arrives. The passengers who get off at that stop exit the bus and disperse.
+          takes over. That simulation you're watching? The time is scaled to real time - 24hrs takes is played back over approximately 3min. We kick off a bunch of d3 timers - one for every trip a bus takes along the line. Then, within each trip, more timers get kicked off to add the waiting passengers to each stop and to move the bus so it arrives at each stop at the proper time. The waiting passengers arrive at a random time between when the bus is a few stops away and when it arrives. The passengers who get off at that stop exit the bus and disperse.
         </p>
         <p>
           Clicking a new route on the map loads that route, and the day pulldown switches days, just as you'd expect. And a few things we couldn't resist: The skyline changes color in an ambient display of the time of day, and we drew the little bus in inbound/outbound modes, and also made it turn headlights on at night. Finally, hovering over the stop on the route visualization panel shows the street names of the stop, and highlights the stop location on the map.
