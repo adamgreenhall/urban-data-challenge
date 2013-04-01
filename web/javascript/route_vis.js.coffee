@@ -1,30 +1,9 @@
+playbackTmax = 3 * 60 * 1000  # 3min
+
 colorOfDayScale = d3.scale.linear()
   .domain([0,23])
-colorOfDayScale.domain([0.0,
- 0.20,
- 0.21875,
- 0.23958333333333334,
- 0.25,
- 0.2708333333333333,
- 0.2916666666666667,
- 0.3125,
- 0.3333333333333333,
- 0.375,
- 0.4166666666666667,
- 0.5,
- 0.5416666666666666,
- 0.5833333333333334,
- 0.625,
- 0.6666666666666666,
- 0.7083333333333334,
- 0.75,
- 0.7708333333333334,
- 0.7916666666666666,
- 0.8125,
- 0.8333333333333334,
- 0.8541666666666666,
- 0.875,
- 0.916].map(colorOfDayScale.invert))
+colorOfDayScale.domain([0.0, 0.20, 0.21875, 0.23958333333333334, 0.25, 0.2708333333333333, 0.2916666666666667, 0.3125,  0.3333333333333333, 0.375, 0.4166666666666667, 0.5, 0.5416666666666666, 0.5833333333333334, 0.625, 0.6666666666666666, 0.7083333333333334, 0.75,
+ 0.7708333333333334, 0.7916666666666666, 0.8125, 0.8333333333333334, 0.8541666666666666, 0.875, 0.916].map(colorOfDayScale.invert))
 colorOfDayScale.range(["#01062d","#2b1782","#600eae","#9b13bb","#b13daf","#d086b5","#dfa7ac","#ebc8ab","#f3dfbc","#fef6aa","#fefdea","#fbf4a5","#f0d681","#fbf8da","#f5f1ba","#f0e435","#f4be51","#ec2523","#a82358","#712b80","#4a3f96","#188dba","#1c71a3","#173460","#020b2f"])
 
 colorOfDay = (t) -> 
@@ -32,31 +11,7 @@ colorOfDay = (t) ->
 
 colorOfTextScale = d3.scale.linear()
   .domain([0,23])
-colorOfTextScale.domain([0.0,
- 0.20,
- 0.21875,
- 0.23958333333333334,
- 0.25,
- 0.2708333333333333,
- 0.2916666666666667,
- 0.3125,
- 0.3333333333333333,
- 0.375,
- 0.4166666666666667,
- 0.5,
- 0.5416666666666666,
- 0.5833333333333334,
- 0.625,
- 0.6666666666666666,
- 0.7083333333333334,
- 0.75,
- 0.7708333333333334,
- 0.7916666666666666,
- 0.8125,
- 0.8333333333333334,
- 0.8541666666666666,
- 0.875,
- 0.916].map(colorOfTextScale.invert))
+colorOfTextScale.domain([0.0, 0.20, 0.21875, 0.23958333333333334, 0.25, 0.2708333333333333, 0.2916666666666667, 0.3125, 0.3333333333333333, 0.375, 0.4166666666666667, 0.5, 0.5416666666666666, 0.5833333333333334, 0.625, 0.6666666666666666, 0.7083333333333334, 0.75, 0.7708333333333334, 0.7916666666666666, 0.8125, 0.8333333333333334, 0.8541666666666666, 0.875, 0.916].map(colorOfTextScale.invert))
 colorOfTextScale.range(["#e5e7f8","#e5e7f8","#f6f2f8","#f6f2f8","#f6f2f8","#d086b5","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#2c0938","#f6f2f8","#f6f2f8","#f6f2f8","#f6f2f8","#f6f2f8"])
 
 colorOfText = (t) -> 
@@ -68,7 +23,10 @@ updateTime = (timeDisplay, t) ->
   timeDisplay.ampm.text(d3.time.format.utc('%p')(curTime))
   timeDisplay.weekday.text(d3.time.format.utc('%A')(curTime))
 
-playbackTmax = 3 * 60 * 1000  # 5min
+isNight = (t) ->
+  hour = +d3.time.format.utc('%H')(new Date(t * 1000))
+  console.log hour, 0<=hour<7 or hour>=19
+  0<=hour<7 or hour>=19
 
 window.show_ts = (error, data_daily, map) ->
   
@@ -292,7 +250,7 @@ window.show_ts = (error, data_daily, map) ->
       .range([0, tScale(d3.max(data_stops, tVal)) - tScale(d3.min(data_stops, tVal))])
 
     bus = g.append('image').attr
-      'xlink:href': "img/bus-#{if data_trip.trip_direction then 'inbound' else 'outbound'}.png"
+      'xlink:href': "img/bus-#{if data_trip.trip_direction then 'inbound' else 'outbound'}#{if isNight(data_trip.realTimeStart) then '-night' else ''}.png"
       class: "bus bus-" + data_trip.id_trip
       width: rScale(rVal(data_stops[0]))
       height: rScale(rVal(data_stops[0]))
