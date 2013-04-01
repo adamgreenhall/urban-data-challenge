@@ -21,12 +21,14 @@ updateTime = (timeDisplay, t) ->
   curTime = new Date(t * 1000)
   timeDisplay.time.text(d3.time.format.utc('%I:%M')(curTime))
   timeDisplay.ampm.text(d3.time.format.utc('%p')(curTime))
-  timeDisplay.weekday.text(d3.time.format.utc('%A')(curTime))
 
 isNight = (t) ->
   hour = +d3.time.format.utc('%H')(new Date(t * 1000))
-  console.log hour, 0<=hour<7 or hour>=19
   0<=hour<7 or hour>=19
+
+radiusPassenger = 3
+maxNpassengers = 5
+
 
 window.show_ts = (error, data_daily, map) ->
   
@@ -88,8 +90,26 @@ window.show_ts = (error, data_daily, map) ->
   rScale = d3.scale.linear()
     .domain(nested_min_max(data_daily.trips, 'stops', rVal))
     .range([30, 80])
+    
+  mostStopPgrs = nested_min_max(data_daily.trips, 'stops', (d) -> d.count_boarding)[1]
+  sumPpl = data_daily.trips.map (trip) ->
+    d3.sum(trip.stops.map (stop) -> stop.count_boarding)
 
+  if d3.max(sumPpl) > 100  
+    # if number of passgengers on a trip is more than 100
+    # each stop gets only one passenger circle 
+    # but scaled to a radius representing how many passengers
+    countScale = (c) -> 1 # Math.min(c, maxNpassengers)
+    radiusPassengerMultScale = d3.scale.linear()
+      .domain([1, mostStopPgrs+5])
+      .range([1, 20])
+  else
+    # otherwise - one circle = one passenger 
+    countScale = (c) -> c
+    radiusPassengerMultScale = (c) -> 1
   
+  
+
   yPos = yScale(0.5)
   yPosPassengers = yScale(0.4)
   yValStop = (dir) ->
@@ -237,7 +257,6 @@ window.show_ts = (error, data_daily, map) ->
   
   begin_bus_trip = (data_trip) ->
     id_trip = data_trip.id_trip
-    console.log('begin trip ', id_trip)
     data_stops = data_trip.stops
     current_bus_stop = 0
     # if departure time is not defined, the default is 30 seconds after arrival
@@ -294,7 +313,7 @@ window.show_ts = (error, data_daily, map) ->
           class: "passenger passenger-#{id_trip}"
           cx: (d) -> d.x
           cx: (d) -> d.y
-          r: 3
+          r: (d) -> radiusPassenger * radiusPassengerMultScale(d.nPassengers)
         .style
           fill: (d) -> color_filler(d.stop_number)
           stroke: (d) -> d3.rgb(color_filler(d.stop_number)).darker(2)
@@ -306,6 +325,7 @@ window.show_ts = (error, data_daily, map) ->
         .attr
           cx: (d) -> xScale(xVal(data_stops[d.stop_number]))
           cy: (d) -> yScale(yValBus(data_stops[d.stop_number]))
+          r: 3
       drop_circles = () -> 
         passenger_circles.exit().remove()
         # HACK - cleanup left behind passegers
@@ -317,15 +337,17 @@ window.show_ts = (error, data_daily, map) ->
       force.start()
       return
   
-    add_passenger_to_bus_stop = (stop_number) -> 
+    add_passenger_to_bus_stop = (psgr) -> 
       return if current_bus_stop >= data_stops.length - 1
+      stop_number = psgr.stop_number
+      
       data_passengers.push 
         stop_number: stop_number
         id_trip: id_trip
         # centered horizontally on the foci, but with some scatter to either side 
         x: xScale(xVal(data_stops[stop_number])) + (Math.random() - 0.5) * width / data_stops.length
         y: randomYpos(data_trip.trip_direction)
-    
+        nPassengers: psgr.nPassengers
       redraw_passengers()
 
   
@@ -334,7 +356,7 @@ window.show_ts = (error, data_daily, map) ->
       departing_data = ({
         xEnd: xScale(xVal(stop)) + (Math.random() - 0.5) * width / data_stops.length,
         yEnd: randomYpos(data_trip.trip_direction)
-        } for i in range(stop.count_exiting))
+        } for i in _.range(stop.count_exiting))
     
       # return if stop.count_exiting == 0
       departing_passengers = g.selectAll("circle.passenger-departing-#{id_trip}-#{stop_number}")
@@ -382,7 +404,7 @@ window.show_ts = (error, data_daily, map) ->
       current_bus_stop = stop_number
       if stop_number == 0
         duration_motion = 50  # can't be zero, because d3 timer events take up to 10ms to fire
-        duration_stopped = 50
+        duration_stopped = 100
       else
         # transition duration is the difference between prev. stop departure time and arrival
         duration_motion = durationScale( tVal(data_stops[stop_number]) - tDepartureVal(data_stops[stop_number - 1]) )
@@ -424,10 +446,8 @@ window.show_ts = (error, data_daily, map) ->
           bus.remove() 
           # remove all passengers, if any left waiting
           remaining = d3.selectAll("circle.passenger-#{id_trip}")
-          if passenger_circles[0].length == 0 and remaining[0].length > 0
-            console.log('WARNING: remaining not all in passenger circles')
           if remaining[0].length > 0
-            console.log("removing #{remaining[0].length} left behind passengers for #{id_trip}")
+            #removing left behind passengers for the trip
             remaining.remove()
           
         return
@@ -438,10 +458,10 @@ window.show_ts = (error, data_daily, map) ->
     # set up the passenger arrival timing
     data_passenger_timing = []
     data_stops.forEach (stop, s) ->
-      range(stop.count_boarding).forEach (el, i) -> 
-        # TODO make the passenger more likely to get to stop just before bus arrives
-        # currently equally likely that passeger arrives while 
-        # bus is anywhere between 5 stops away and Tarrival - 30sec
+      # if stop.count_boarding > maxNpassengers
+      _.range(countScale(stop.count_boarding)).forEach (el, i) -> 
+        # make passengers equally likely that passeger arrives while 
+        # bus is anywhere between 8 stops away and Tarrival - 100sec
         if s > 8
           tPrev = tVal(data_stops[s - 5])
         else
@@ -449,10 +469,11 @@ window.show_ts = (error, data_daily, map) ->
         data_passenger_timing.push
           time_appear: getRandomRange(tPrev, tVal(stop) - 100) - tVal(data_stops[0])
           stop_number: s
+          nPassengers: stop.count_boarding
     # add the passengers to the stops as they arrive
     data_passenger_timing.forEach (psgr, p) ->
       adder_fn = () ->
-        add_passenger_to_bus_stop(psgr.stop_number)
+        add_passenger_to_bus_stop(psgr)
         return true
       setTimeout(adder_fn, durationScale(psgr.time_appear))
       return
