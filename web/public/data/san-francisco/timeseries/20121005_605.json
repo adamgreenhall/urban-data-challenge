@@ -1,0 +1,1 @@
+{"date": "20121005", "stop_locations": [{"distance": 0.0, "direction": 0, "id_stop": 5193}], "id_route": "605", "trips": [{"id_trip": "2455", "trip_direction": 0, "stops": [{"count": 8, "time_arrival": 1349486090, "id_stop": 5193, "count_boarding": 1, "count_exiting": 0}]}]}

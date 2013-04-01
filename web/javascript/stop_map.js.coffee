@@ -12,14 +12,14 @@ class LeafletMap
     @_loadData()
     @busStopRadius = 3
     @currentRouteID = null
-    
+
   # Convert back to lat-long coordinates
   projection: (x) ->
     point = @_map.latLngToLayerPoint(new L.LatLng(x[1], x[0]))
     [point.x, point.y]
 
   getWidth: ->
-    $('#' + @mapContainerId).width()    
+    $('#' + @mapContainerId).width()
   getHeight: ->
     $('#' + @mapContainerId).height()
 
@@ -49,16 +49,20 @@ class LeafletMap
       @_busRoutes.attr("d", @_path)
 
     return
-      
-  
-  _generateMap: ->   
+
+
+  _generateMap: ->
     @_map = L.map(@mapContainerId, {
       center: CITY_CENTER[@city],
-      zoom:   13}).addLayer(new L.tileLayer("http://{s}.tile.cloudmade.com/62541519723e4a6abd36d8a4bb4d6ac3/998/256/{z}/{x}/{y}.png", {
+      zoom:   13
+      zoomControl: false}).addLayer(new L.tileLayer("http://{s}.tile.cloudmade.com/62541519723e4a6abd36d8a4bb4d6ac3/998/256/{z}/{x}/{y}.png", {
         attribution: "",
-        maxZoom: 16
+        maxZoom: 16,
     }))
-    
+
+    @_layerControl = new L.Control.Zoom({ position: 'bottomleft' })
+    @_layerControl.addTo(@_map)
+
     d3.select('.leaflet-control-attribution').remove()
     return
 
@@ -119,24 +123,24 @@ class LeafletMap
 
     # clear out any existing visualizations
     d3.selectAll('#route_vis > svg').remove()
-  
+
     #unhighight stops
     @g.selectAll("circle.bus-stop")
       .classed('highlighted', false)
-    
-  
+
+
   newRouteVis: (filename) =>
     self = @
     console.log('loading', filename)
-    
+
     call_ts_vis = (error, data) -> show_ts(error, data, self)
     @_remoteRequests.push(d3.json(filename, call_ts_vis))
 
   dateChange: () =>
     __this = @
     @cancelOtherVis()
-    
-    date = $('select#weekday option:selected').val()    
+
+    date = $('select#weekday option:selected').val()
     filename = "/data/#{@city}/timeseries/#{date}_#{@currentRouteID}.json"
     @newRouteVis(filename)
 
@@ -151,9 +155,9 @@ class LeafletMap
 
     # load up the timeseries data for the route
     # TODO - date picker
-    date = $('select#weekday option:selected').val()    
+    date = $('select#weekday option:selected').val()
     filename = "/data/#{@city}/timeseries/#{date}_#{id_route}.json"
-    @newRouteVis(filename)      
+    @newRouteVis(filename)
 
   _loadData: ->
     d3.json "/data/#{@city}/stops.json", (stops) =>
@@ -185,7 +189,7 @@ class LeafletMap
 
       @_map.on("viewreset", () -> __this.redraw())
       @redraw()
-      
+
       d3.json "/data/#{@city}/routes.json", (routes) =>
         @_busRoutes = @g.selectAll("path.bus-route")
           .data(topojson.object(routes, routes.objects.routes).geometries).enter()
@@ -197,8 +201,8 @@ class LeafletMap
             .on("mouseover", (d) -> __this._routeMouseover(this, d))
             .on("mouseout", (d) -> __this._routeMouseout(this, d))
             .on("click", (d) -> __this._routeClick(this, d))
-            
-        # set up a date picker 
+
+        # set up a date picker
         $('select#weekday').change(@dateChange)
         # start the thing off with a default route
         @_routeClick(null, routes.objects.routes.geometries[0])
