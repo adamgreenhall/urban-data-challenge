@@ -1,0 +1,112 @@
+html, body {
+  margin: 0;
+  height: 100%; }
+
+.hidden {
+  display: none; }
+
+#map {
+  height: 100%;
+  padding: 0; }
+
+#city-switcher {
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+  padding: 10px;
+  position: fixed;
+  width: 12em;
+  bottom: 5%;
+  right: 0%;
+  background-color: #dddddd;
+  opacity: 0.7;
+  z-index: 1000;
+  font-family: Coustard, serif; }
+  #city-switcher li {
+    font-size: 18px; }
+
+#route_vis_panel {
+  position: fixed;
+  width: 100%;
+  height: 400px;
+  top: 0%;
+  opacity: 0.7;
+  z-index: 1000;
+  font-family: Coustard, serif; }
+  #route_vis_panel h3 {
+    font-size: 48px !important;
+    line-height: 60px !important;
+    padding-left: 100px; }
+  #route_vis_panel #time-display .time, #route_vis_panel #time-display .ampm {
+    padding-top: 10px; }
+  #route_vis_panel select#weekday {
+    background-color: rgba(255, 255, 255, 0.5);
+    width: 7em;
+    font-weight: bold;
+    font-family: Coustard, serif !important;
+    font-size: 48px !important;
+    height: 1.5em !important; }
+
+circle.bus-stop {
+  fill: steelblue;
+  fill-opacity: 0.8; }
+  circle.bus-stop:hover {
+    fill: yellow;
+    stroke: black;
+    stroke-width: 1px; }
+  circle.bus-stop.highlighted {
+    stroke: black;
+    stroke-width: 1px; }
+  circle.bus-stop.user-highlighted {
+    fill: yellow;
+    stroke: black;
+    stroke-width: 1px; }
+
+path.bus-route {
+  fill: none;
+  stroke: black;
+  stroke-width: 2px; }
+  path.bus-route.highlighted {
+    fill: none;
+    stroke: green;
+    stroke-width: 5px; }
+
+#tooltip {
+  position: absolute;
+  width: 200px;
+  height: auto;
+  padding: 10px;
+  background-color: white;
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  border-radius: 10px;
+  -webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+  -moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+  box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  z-index: 100; }
+  #tooltip.hidden {
+    display: none; }
+  #tooltip p {
+    margin: 0;
+    font-family: sans-serif;
+    font-size: 16px;
+    line-height: 20px; }
+
+#route_vis circle.bus {
+  fill: steelblue;
+  stroke: black;
+  stroke-width: 1px; }
+#route_vis circle.bus-stop {
+  stroke-width: 1.5px;
+  stroke: black;
+  fill: grey;
+  fill-opacity: 0.7; }
+  #route_vis circle.bus-stop.user-highlighted {
+    fill: yellow;
+    stroke: black;
+    stroke-width: 1px; }
+#route_vis path.bus-line {
+  stroke-opacity: 0.3;
+  fill: none;
+  stroke-width: 5px;
+  shape-rendering: crispEdges; }
