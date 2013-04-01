@@ -156,6 +156,24 @@ window.show_ts = (error, data_daily, map) ->
 
   xScaledValBus = (d, dir) -> xScale(xVal(d)) - (if dir then rScale(rVal(d)) else 0)
 
+#  Npts = _.flatten(routePath.data()[0].coordinates).length / 2
+#  xPts = (i/xScale.range()[1] for i in range(Npts))
+#  routePath.datum(xPts)
+#    .transition().duration(5000)
+#      .attr('d', line_maker)
+
+#  window.routePath = routePath
+#  return
+
+  line = g.append("path")
+    .datum(xScale.range())
+    .attr
+      d: line_maker
+      class: "bus-line"
+    .style
+      stroke: map.g.select("path.bus-route-#{data_daily.id_route}").style('stroke')
+
+
   stops = g.selectAll("circle.bus-stop")
     .data(data_daily.stop_locations).enter()
     .append("circle").attr
@@ -206,23 +224,6 @@ window.show_ts = (error, data_daily, map) ->
     .on('mouseover', (d) -> vis_highlight_stop(d, this))
     .on('mouseout', (d) -> vis_unhighlight_stop(d, this))
 
-#  Npts = _.flatten(routePath.data()[0].coordinates).length / 2
-#  xPts = (i/xScale.range()[1] for i in range(Npts))
-#  routePath.datum(xPts)
-#    .transition().duration(5000)
-#      .attr('d', line_maker)
-
-#  window.routePath = routePath
-#  return
-
-  line = g.append("path")
-    .datum(xScale.range())
-    .attr
-      d: line_maker
-      class: "bus-line"
-    .style
-      stroke: map.g.select("path.bus-route-#{data_daily.id_route}").style('stroke')
-
 
   # basic force layout
   force_layout = () ->
@@ -271,13 +272,16 @@ window.show_ts = (error, data_daily, map) ->
       .domain([0, d3.max(data_stops, tVal) - d3.min(data_stops, tVal)])
       .range([0, tScale(d3.max(data_stops, tVal)) - tScale(d3.min(data_stops, tVal))])
 
-    bus = g.append('image').attr
-      'xlink:href': "img/bus-#{if data_trip.trip_direction then 'inbound' else 'outbound'}#{if isNight(data_trip.realTimeStart) then '-night' else ''}.png"
-      class: "bus bus-" + data_trip.id_trip
-      width: rScale(rVal(data_stops[0]))
-      height: rScale(rVal(data_stops[0]))
-      x: xScaledValBus(data_stops[0], data_trip.trip_direction)
-      y: yScale(yValBus(data_trip.trip_direction))
+    bus = g.append('image')
+      .style
+        opacity: 0.8
+      .attr
+        'xlink:href': "img/bus-#{if data_trip.trip_direction then 'inbound' else 'outbound'}#{if isNight(data_trip.realTimeStart) then '-night' else ''}.png"
+        class: "bus bus-" + data_trip.id_trip
+        width: rScale(rVal(data_stops[0]))
+        height: rScale(rVal(data_stops[0]))
+        x: xScaledValBus(data_stops[0], data_trip.trip_direction)
+        y: yScale(yValBus(data_trip.trip_direction))
 
 
 
@@ -445,7 +449,12 @@ window.show_ts = (error, data_daily, map) ->
           map.visTimers.push(setTimeout(move_to_next_fn, duration_stopped))
         else
           # done with trip
-          bus.remove()
+          fadeDuration = 600
+          bus.transition().duration(fadeDuration)
+            .style('opacity', 0)
+          rmFn = () -> bus.remove()
+          setTimeout(rmFn, fadeDuration)
+          
           # remove all passengers, if any left waiting
           remaining = d3.selectAll("circle.passenger-#{id_trip}")
           if remaining[0].length > 0

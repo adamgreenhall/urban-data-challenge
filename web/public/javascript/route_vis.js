@@ -25,6 +25,7 @@
 
   updateTime = function(timeDisplay, t) {
     var curTime;
+
     curTime = new Date(t * 1000);
     timeDisplay.time.text(d3.time.format.utc('%I:%M')(curTime));
     return timeDisplay.ampm.text(d3.time.format.utc('%p')(curTime));
@@ -32,6 +33,7 @@
 
   isNight = function(t) {
     var hour;
+
     hour = +d3.time.format.utc('%H')(new Date(t * 1000));
     return (0 <= hour && hour < 7) || hour >= 19;
   };
@@ -42,6 +44,7 @@
 
   window.show_ts = function(error, data_daily, map) {
     var all_timers, begin_bus_trip, color_filler, countScale, force_layout, fraction_stopped_time, g, height, line, line_maker, margin, mostStopPgrs, rScale, rVal, radiusPassengerScale, randomYpos, routePath, stopNameDisplay, stop_dists, stops, sumPpl, svg_route, tDepartureVal, tScale, tVal, timeDisplay, visStopRadius, vis_highlight_stop, vis_unhighlight_stop, width, xScale, xScaledValBus, xVal, yPos, yPosPassengers, yScale, yScaledValDoorsBus, yValBus, yValStop;
+
     if (error) {
       console.log(error.statusText);
       d3.selectAll('.normalOperation').classed('hidden', true);
@@ -168,6 +171,12 @@
     xScaledValBus = function(d, dir) {
       return xScale(xVal(d)) - (dir ? rScale(rVal(d)) : 0);
     };
+    line = g.append("path").datum(xScale.range()).attr({
+      d: line_maker,
+      "class": "bus-line"
+    }).style({
+      stroke: map.g.select("path.bus-route-" + data_daily.id_route).style('stroke')
+    });
     stops = g.selectAll("circle.bus-stop").data(data_daily.stop_locations).enter().append("circle").attr({
       "class": function(d) {
         return "bus-stop bus-stop-" + d.id_stop;
@@ -182,6 +191,7 @@
     });
     vis_highlight_stop = function(d, elem) {
       var map_circle, vis_circle;
+
       map_circle = map.g.selectAll("circle.bus-stop-" + d.id_stop);
       map_circle.moveToFront().classed('highlighted', true).transition().attr('r', map.busStopRadius * 3);
       if (elem) {
@@ -196,6 +206,7 @@
     };
     vis_unhighlight_stop = function(d, elem) {
       var map_circle;
+
       map_circle = map.g.selectAll("circle.bus-stop-" + d.id_stop);
       map_circle.classed('highlighted', false).transition().attr('r', map.busStopRadius);
       if (elem) {
@@ -209,12 +220,6 @@
     }).on('mouseout', function(d) {
       return vis_unhighlight_stop(d, this);
     });
-    line = g.append("path").datum(xScale.range()).attr({
-      d: line_maker,
-      "class": "bus-line"
-    }).style({
-      stroke: map.g.select("path.bus-route-" + data_daily.id_route).style('stroke')
-    });
     force_layout = function() {
       return d3.layout.force().links([]).gravity(0).friction(0.2).charge(-80).size([svg_route.width, svg_route.height]);
     };
@@ -225,8 +230,10 @@
     });
     data_daily.trips.forEach(function(data_trip, i) {
       var start_trip;
+
       start_trip = function() {
         var duration;
+
         duration = data_trip.Tstart - (i > 0 ? data_daily.trips[i - 1].Tstart : 0);
         d3.select('#route_vis_panel').transition().duration(duration).style('background-color', colorOfDay(data_trip.realTimeStart)).style('color', colorOfText(data_trip.realTimeStart));
         d3.select("#weekday").transition().duration(duration).style('color', colorOfText(data_trip.realTimeStart));
@@ -236,6 +243,7 @@
     });
     begin_bus_trip = function(data_trip) {
       var add_passenger_to_bus_stop, bus, current_bus_stop, data_passenger_timing, data_passengers, data_stops, durationScale, force, id_trip, move_bus, passenger_circles, redraw_passengers, show_boarding_passengers, show_departing_passengers, tick_fn;
+
       id_trip = data_trip.id_trip;
       data_stops = data_trip.stops;
       current_bus_stop = 0;
@@ -243,7 +251,9 @@
         d.time_departure || (d.time_departure = tVal(d) + 30);
       });
       durationScale = d3.scale.linear().domain([0, d3.max(data_stops, tVal) - d3.min(data_stops, tVal)]).range([0, tScale(d3.max(data_stops, tVal)) - tScale(d3.min(data_stops, tVal))]);
-      bus = g.append('image').attr({
+      bus = g.append('image').style({
+        opacity: 0.8
+      }).attr({
         'xlink:href': "img/bus-" + (data_trip.trip_direction ? 'inbound' : 'outbound') + (isNight(data_trip.realTimeStart) ? '-night' : '') + ".png",
         "class": "bus bus-" + data_trip.id_trip,
         width: rScale(rVal(data_stops[0])),
@@ -255,6 +265,7 @@
       passenger_circles = g.selectAll("circle.passenger-" + id_trip);
       tick_fn = function(e) {
         var k;
+
         k = .9 * e.alpha;
         data_passengers.forEach(function(o, i) {
           o.x += (xScale(xVal(data_stops[o.stop_number])) - o.x) * k;
@@ -272,6 +283,7 @@
       force = force_layout().nodes(data_passengers).on('tick', tick_fn);
       redraw_passengers = function(boarding_duration) {
         var drop_circles;
+
         boarding_duration || (boarding_duration = 500);
         force.nodes(data_passengers);
         passenger_circles = passenger_circles.data(force.nodes(), function(d) {
@@ -319,6 +331,7 @@
       };
       add_passenger_to_bus_stop = function(psgr) {
         var stop_number;
+
         if (current_bus_stop >= data_stops.length - 1) {
           return;
         }
@@ -334,9 +347,11 @@
       };
       show_departing_passengers = function(stop_number) {
         var departing_data, departing_passengers, drop_data, duration, i, stop;
+
         stop = data_stops[stop_number];
         departing_data = (function() {
           var _i, _len, _ref, _results;
+
           _ref = _.range(stop.count_exiting);
           _results = [];
           for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -377,6 +392,7 @@
       };
       show_boarding_passengers = function(stop_number, duration_stopped) {
         var boarding_fn;
+
         if (!(data_passengers.length > 0)) {
           return;
         }
@@ -390,6 +406,7 @@
       };
       move_bus = function(stop_number) {
         var arrival_fn, duration_motion, duration_stopped;
+
         current_bus_stop = stop_number;
         if (stop_number === 0) {
           duration_motion = 50;
@@ -402,7 +419,8 @@
           x: xScaledValBus(data_stops[stop_number], data_trip.trip_direction)
         });
         arrival_fn = function() {
-          var move_to_next_fn, remaining;
+          var fadeDuration, move_to_next_fn, remaining, rmFn;
+
           if (stop_number < (data_stops.length - 1)) {
             updateTime(timeDisplay, tVal(data_stops[stop_number]));
             vis_highlight_stop(data_stops[stop_number]);
@@ -418,7 +436,12 @@
             };
             map.visTimers.push(setTimeout(move_to_next_fn, duration_stopped));
           } else {
-            bus.remove();
+            fadeDuration = 600;
+            bus.transition().duration(fadeDuration).style('opacity', 0);
+            rmFn = function() {
+              return bus.remove();
+            };
+            setTimeout(rmFn, fadeDuration);
             remaining = d3.selectAll("circle.passenger-" + id_trip);
             if (remaining[0].length > 0) {
               remaining.remove();
@@ -431,6 +454,7 @@
       data_stops.forEach(function(stop, s) {
         return _.range(countScale(stop.count_boarding)).forEach(function(el, i) {
           var tPrev;
+
           if (s > 8) {
             tPrev = tVal(data_stops[s - 5]);
           } else {
@@ -445,6 +469,7 @@
       });
       data_passenger_timing.forEach(function(psgr, p) {
         var adder_fn;
+
         adder_fn = function() {
           add_passenger_to_bus_stop(psgr);
           return true;
