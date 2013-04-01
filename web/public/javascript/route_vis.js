@@ -168,6 +168,12 @@
     xScaledValBus = function(d, dir) {
       return xScale(xVal(d)) - (dir ? rScale(rVal(d)) : 0);
     };
+    line = g.append("path").datum(xScale.range()).attr({
+      d: line_maker,
+      "class": "bus-line"
+    }).style({
+      stroke: map.g.select("path.bus-route-" + data_daily.id_route).style('stroke')
+    });
     stops = g.selectAll("circle.bus-stop").data(data_daily.stop_locations).enter().append("circle").attr({
       "class": function(d) {
         return "bus-stop bus-stop-" + d.id_stop;
@@ -209,12 +215,6 @@
     }).on('mouseout', function(d) {
       return vis_unhighlight_stop(d, this);
     });
-    line = g.append("path").datum(xScale.range()).attr({
-      d: line_maker,
-      "class": "bus-line"
-    }).style({
-      stroke: map.g.select("path.bus-route-" + data_daily.id_route).style('stroke')
-    });
     force_layout = function() {
       return d3.layout.force().links([]).gravity(0).friction(0.2).charge(-80).size([svg_route.width, svg_route.height]);
     };
@@ -243,7 +243,9 @@
         d.time_departure || (d.time_departure = tVal(d) + 30);
       });
       durationScale = d3.scale.linear().domain([0, d3.max(data_stops, tVal) - d3.min(data_stops, tVal)]).range([0, tScale(d3.max(data_stops, tVal)) - tScale(d3.min(data_stops, tVal))]);
-      bus = g.append('image').attr({
+      bus = g.append('image').style({
+        opacity: 0.8
+      }).attr({
         'xlink:href': "img/bus-" + (data_trip.trip_direction ? 'inbound' : 'outbound') + (isNight(data_trip.realTimeStart) ? '-night' : '') + ".png",
         "class": "bus bus-" + data_trip.id_trip,
         width: rScale(rVal(data_stops[0])),
@@ -402,7 +404,7 @@
           x: xScaledValBus(data_stops[stop_number], data_trip.trip_direction)
         });
         arrival_fn = function() {
-          var move_to_next_fn, remaining;
+          var fadeDuration, move_to_next_fn, remaining, rmFn;
           if (stop_number < (data_stops.length - 1)) {
             updateTime(timeDisplay, tVal(data_stops[stop_number]));
             vis_highlight_stop(data_stops[stop_number]);
@@ -418,7 +420,12 @@
             };
             map.visTimers.push(setTimeout(move_to_next_fn, duration_stopped));
           } else {
-            bus.remove();
+            fadeDuration = 600;
+            bus.transition().duration(fadeDuration).style('opacity', 0);
+            rmFn = function() {
+              return bus.remove();
+            };
+            setTimeout(rmFn, fadeDuration);
             remaining = d3.selectAll("circle.passenger-" + id_trip);
             if (remaining[0].length > 0) {
               remaining.remove();
