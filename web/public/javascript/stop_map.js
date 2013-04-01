@@ -76,11 +76,16 @@
     LeafletMap.prototype._generateMap = function() {
       this._map = L.map(this.mapContainerId, {
         center: CITY_CENTER[this.city],
-        zoom: 13
+        zoom: 13,
+        zoomControl: false
       }).addLayer(new L.tileLayer("http://{s}.tile.cloudmade.com/62541519723e4a6abd36d8a4bb4d6ac3/998/256/{z}/{x}/{y}.png", {
         attribution: "",
         maxZoom: 16
       }));
+      this._layerControl = new L.Control.Zoom({
+        position: 'bottomleft'
+      });
+      this._layerControl.addTo(this._map);
       d3.select('.leaflet-control-attribution').remove();
     };
 

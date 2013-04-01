@@ -54,10 +54,14 @@ class LeafletMap
   _generateMap: ->   
     @_map = L.map(@mapContainerId, {
       center: CITY_CENTER[@city],
-      zoom:   13}).addLayer(new L.tileLayer("http://{s}.tile.cloudmade.com/62541519723e4a6abd36d8a4bb4d6ac3/998/256/{z}/{x}/{y}.png", {
+      zoom:   13
+      zoomControl: false}).addLayer(new L.tileLayer("http://{s}.tile.cloudmade.com/62541519723e4a6abd36d8a4bb4d6ac3/998/256/{z}/{x}/{y}.png", {
         attribution: "",
-        maxZoom: 16
+        maxZoom: 16,
     }))
+
+    @_layerControl = new L.Control.Zoom({ position: 'bottomleft' })
+    @_layerControl.addTo(@_map)
     
     d3.select('.leaflet-control-attribution').remove()
     return

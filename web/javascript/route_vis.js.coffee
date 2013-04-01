@@ -1,4 +1,4 @@
-playbackTmax = 3 * 60 * 1000  # 3min
+playbackTmax = 1.5 * 60 * 1000  # 3min
 
 colorOfDayScale = d3.scale.linear()
   .domain([0,23])
