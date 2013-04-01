@@ -90,30 +90,25 @@ window.show_ts = (error, data_daily, map) ->
   rScale = d3.scale.linear()
     .domain(nested_min_max(data_daily.trips, 'stops', rVal))
     .range([30, 80])
-<<<<<<< HEAD
     
   mostStopPgrs = nested_min_max(data_daily.trips, 'stops', (d) -> d.count_boarding)[1]
   sumPpl = data_daily.trips.map (trip) ->
     d3.sum(trip.stops.map (stop) -> stop.count_boarding)
 
-  if d3.max(sumPpl) > 100  
+  if d3.max(sumPpl) > 100 and map.city == 'geneva'
     # if number of passgengers on a trip is more than 100
     # each stop gets only one passenger circle 
     # but scaled to a radius representing how many passengers
     countScale = (c) -> 1 # Math.min(c, maxNpassengers)
-    radiusPassengerMultScale = d3.scale.linear()
+    radiusPassengerScale = d3.scale.linear()
       .domain([1, mostStopPgrs+5])
-      .range([1, 20])
+      .range([radiusPassenger, 15])
   else
     # otherwise - one circle = one passenger 
     countScale = (c) -> c
-    radiusPassengerMultScale = (c) -> 1
+    radiusPassengerScale = (c) -> radiusPassenger
   
   
-=======
-
->>>>>>> ac3b2f7bccc83abdc5dabd1759e409abfda16ee3
-
   yPos = yScale(0.5)
   yPosPassengers = yScale(0.4)
   yValStop = (dir) ->
@@ -321,7 +316,7 @@ window.show_ts = (error, data_daily, map) ->
           class: "passenger passenger-#{id_trip}"
           cx: (d) -> d.x
           cx: (d) -> d.y
-          r: (d) -> radiusPassenger * radiusPassengerMultScale(d.nPassengers)
+          r: (d) -> radiusPassengerScale(d.nPassengers)
         .style
           fill: (d) -> color_filler(d.stop_number)
           stroke: (d) -> d3.rgb(color_filler(d.stop_number)).darker(2)

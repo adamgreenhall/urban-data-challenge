@@ -1,13 +1,13 @@
-defaultRoutes:
-  'san-francisco': 12
-  'geneva': 5
-  'zurich': 1
-
 class LeafletMap
   CITY_CENTER =
     "san-francisco": [37.783333, -122.416667]
     geneva: [46.2, 6.15]
     zurich: [47.366667, 8.55]
+
+  DEFAULT_ROUTES = 
+    'san-francisco': 5
+    'geneva': 19
+    'zurich': 9
 
   constructor: (@mapContainerId, @city) ->
     @_generateMap()
@@ -209,7 +209,9 @@ class LeafletMap
         # set up a date picker
         $('select#weekday').change(@dateChange)
         # start the thing off with a default route
-        @_routeClick(null, routes.objects.routes.geometries[0])
+        defaultRoute = routes.objects.routes.geometries.filter (route) ->
+          "#{route.properties.id_route}" == "#{DEFAULT_ROUTES[__this.city]}"
+        @_routeClick(null, defaultRoute[0])
         return
       return
 
