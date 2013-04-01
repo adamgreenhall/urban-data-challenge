@@ -1,7 +1,7 @@
 (function() {
   var colorOfDay, colorOfDayScale, colorOfText, colorOfTextScale, isNight, maxNpassengers, playbackTmax, radiusPassenger, updateTime;
 
-  playbackTmax = 1.5 * 60 * 1000;
+  playbackTmax = 3 * 60 * 1000;
 
   colorOfDayScale = d3.scale.linear().domain([0, 23]);
 
