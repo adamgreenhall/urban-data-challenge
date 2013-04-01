@@ -7,7 +7,6 @@ import datetime
 from stop_distance import get_distances, geneva_dist, load_stops_topojson
 
 from utils import set_trace
-utils.ipy_on_exception()
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--city', default='san-francisco')
