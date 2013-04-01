@@ -4,16 +4,7 @@ window.translate = (x, y) ->
 
 window.getRandomRange = (min, max) ->
   Math.random() * (max - min) + min
-  
-window.range = (end) ->
-  array = new Array()
-  i = 0
-
-  while i < end
-    array.push i
-    i++
-  array
-  
+    
 window.nested_min_max = (data, nested_key, fn) -> 
   return [
     d3.min(data, (x) -> d3.min(x[nested_key], fn)),
