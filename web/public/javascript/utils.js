@@ -1,5 +1,4 @@
 (function() {
-
   window.translate = function(x, y) {
     return "translate(" + x + ", " + y + ")";
   };
@@ -20,11 +19,13 @@
 
   window.calcDistanceAlongPath = function(points, path, Nsegments) {
     var BBox, i, nearestNeighborIndex, pathLength, segPoints;
+
     Nsegments || (Nsegments = 5000);
     pathLength = path.getTotalLength();
     BBox = path.getBBox();
     segPoints = (function() {
       var _i, _results;
+
       _results = [];
       for (i = _i = 1; 1 <= Nsegments ? _i < Nsegments : _i > Nsegments; i = 1 <= Nsegments ? ++_i : --_i) {
         _results.push(path.getPointAtLength(pathLength * i / Nsegments));
@@ -42,8 +43,10 @@
     }
     nearestNeighborIndex = function(pt, points) {
       var dists, other;
+
       dists = (function() {
         var _i, _len, _results;
+
         _results = [];
         for (_i = 0, _len = points.length; _i < _len; _i++) {
           other = points[_i];
@@ -55,6 +58,7 @@
     };
     points.forEach(function(pt, i) {
       var idx;
+
       idx = nearestNeighborIndex(pt, segPoints);
       return pt.distance = pathLength * idx / Nsegments;
     });

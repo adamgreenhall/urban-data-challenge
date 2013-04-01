@@ -156,15 +156,6 @@ window.show_ts = (error, data_daily, map) ->
 
   xScaledValBus = (d, dir) -> xScale(xVal(d)) - (if dir then rScale(rVal(d)) else 0)
 
-#  Npts = _.flatten(routePath.data()[0].coordinates).length / 2
-#  xPts = (i/xScale.range()[1] for i in range(Npts))
-#  routePath.datum(xPts)
-#    .transition().duration(5000)
-#      .attr('d', line_maker)
-
-#  window.routePath = routePath
-#  return
-
   line = g.append("path")
     .datum(xScale.range())
     .attr
@@ -241,11 +232,8 @@ window.show_ts = (error, data_daily, map) ->
     data_trip.Tstart = tScale(data_trip.realTimeStart)
 
   data_daily.trips.forEach (data_trip, i) ->
-    # debugging HACK - only run 2 trips
-    # return unless i<=1
-
     start_trip = () ->
-      duration = (if i-1 < data_daily.trips.length then data_daily.trips[i+1].Tstart - data_trip.Tstart else 0) 
+      duration = (if i + 1 < data_daily.trips.length then data_daily.trips[i+1].Tstart - data_trip.Tstart else 0) 
       d3.select('#route_vis_panel')
         .transition().duration(duration)
           .style('background-color', colorOfDay(data_trip.realTimeStart))
@@ -255,11 +243,11 @@ window.show_ts = (error, data_daily, map) ->
         .transition().duration(duration)
         .style('color', colorOfText(data_trip.realTimeStart))
 
-      begin_bus_trip(data_trip)
+      begin_bus_trip(data_trip, i)
     map.visTimers.push(setTimeout(start_trip, data_trip.Tstart))
 
 
-  begin_bus_trip = (data_trip) ->
+  begin_bus_trip = (data_trip, tripNumber) ->
     id_trip = data_trip.id_trip
     data_stops = data_trip.stops
     current_bus_stop = 0
@@ -283,14 +271,6 @@ window.show_ts = (error, data_daily, map) ->
         x: xScaledValBus(data_stops[0], data_trip.trip_direction)
         y: yScale(yValBus(data_trip.trip_direction))
 
-
-
-    # bus = g.append("circle").attr
-    #   class: "bus bus-" + data_trip.id_trip
-    #   r: rScale(rVal(data_stops[0]))
-    #   cx: xScale(xVal(data_stops[0]))
-    #   cy: yScale(yValBus(data_trip.trip_direction))
-
     # setup the force layout for the people moving to the bus stops
     data_passengers = []
     passenger_circles = g.selectAll("circle.passenger-#{id_trip}")
@@ -312,7 +292,7 @@ window.show_ts = (error, data_daily, map) ->
 
 
     redraw_passengers = (boarding_duration) ->
-      boarding_duration or= 500  # ms
+      boarding_duration or= 100  # ms
       force.nodes(data_passengers)
       passenger_circles = passenger_circles.data(force.nodes(), (d) -> d.index)
       passenger_circles.enter()
@@ -460,7 +440,10 @@ window.show_ts = (error, data_daily, map) ->
           if remaining[0].length > 0
             #removing left behind passengers for the trip
             remaining.remove()
-
+          
+          if tripNumber == data_daily.trips.length - 1
+            # done with all trips for the day
+            map.advanceDate()
         return
 
       setTimeout(arrival_fn, duration_motion)

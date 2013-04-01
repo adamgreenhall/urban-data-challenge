@@ -149,6 +149,13 @@ class LeafletMap
     filename = "/data/#{@city}/timeseries/#{date}_#{@currentRouteID}.json"
     @newRouteVis(filename)
 
+  advanceDate: () =>
+    curDate = +$('select#weekday option:selected').val()
+    
+    nextDay = if curDate < 20121007 then curDate+1 else 20121001
+    $('select#weekday').val(nextDay)
+    @dateChange()
+    
   _routeClick: (elem, d) =>
     __this = @
     route = d3.select(elem)
