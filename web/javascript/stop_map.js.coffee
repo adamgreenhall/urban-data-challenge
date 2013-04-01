@@ -1,3 +1,8 @@
+defaultRoutes:
+  'san-francisco': 12
+  'geneva': 5
+  'zurich': 1
+
 class LeafletMap
   CITY_CENTER =
     "san-francisco": [37.783333, -122.416667]
@@ -154,7 +159,6 @@ class LeafletMap
     @cancelOtherVis()
 
     # load up the timeseries data for the route
-    # TODO - date picker
     date = $('select#weekday option:selected').val()
     filename = "/data/#{@city}/timeseries/#{date}_#{id_route}.json"
     @newRouteVis(filename)
