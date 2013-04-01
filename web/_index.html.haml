@@ -15,6 +15,8 @@
   %script{:src => "/javascript/route_vis.js", :type => "text/javascript"}
   %link{:href => "http://fonts.googleapis.com/css?family=Coustard", :rel => "stylesheet", :type => "text/css"}/  
   %meta{:content=>"width=device-width, initial-scale=1.0", :name=>"viewport"}
+  :javascript
+    var _sf_startpt=(new Date()).getTime()
 %body
   #tooltip.hidden
     %p
@@ -60,3 +62,19 @@
   :javascript
     city_name = "#{city_name}"
   %script{:src => "/javascript/stop_map.js"}
+
+  :javascript
+    var _sf_async_config = { uid: 45882, domain: 'urban-data.herokuapp.com' };
+    (function() {
+      function loadChartbeat() {
+        window._sf_endpt = (new Date()).getTime();
+        var e = document.createElement('script');
+        e.setAttribute('language', 'javascript');
+        e.setAttribute('type', 'text/javascript');
+        e.setAttribute('src','//static.chartbeat.com/js/chartbeat.js');
+        document.body.appendChild(e);
+      };
+      var oldonload = window.onload;
+      window.onload = (typeof window.onload != 'function') ?
+        loadChartbeat : function() { oldonload(); loadChartbeat(); };
+    })();
