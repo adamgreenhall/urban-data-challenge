@@ -36,15 +36,14 @@ def get_linear_dist(df):
             latlng.ix[i - 1][LL].values,
             coords[LL].values)
 
-    dists = latlng.distance.cumsum()
-    
-    if (dists == 0).sum() > 1:
-        print('interpolating missing stop distances')
-        dists = dists.replace(0, np.nan)
-        dists.ix[0] = 0
-        dists = dists.interpolate()
+    dists = latlng.distance.replace(0, np.nan)
+    dists.ix[0] = 0
 
-    return dists.values
+    if dists.isnull().any():
+        print('interpolating missing stop distances')
+        return dists.cumsum().interpolate().values
+
+    return dists.cumsum().values
 
 
 def haversine_distance(origin, destination):
