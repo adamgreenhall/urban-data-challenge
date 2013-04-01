@@ -227,7 +227,7 @@
       var start_trip;
       start_trip = function() {
         var duration;
-        duration = data_trip.Tstart - (i > 0 ? data_daily.trips[i - 1].Tstart : 0);
+        duration = (i - 1 < data_daily.trips.length ? data_daily.trips[i + 1].Tstart - data_trip.Tstart : 0);
         d3.select('#route_vis_panel').transition().duration(duration).style('background-color', colorOfDay(data_trip.realTimeStart)).style('color', colorOfText(data_trip.realTimeStart));
         d3.select("#weekday").transition().duration(duration).style('color', colorOfText(data_trip.realTimeStart));
         return begin_bus_trip(data_trip);

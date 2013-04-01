@@ -244,7 +244,7 @@ window.show_ts = (error, data_daily, map) ->
     # return unless i<=1
 
     start_trip = () ->
-      duration = data_trip.Tstart - (if i > 0 then data_daily.trips[i-1].Tstart else 0)
+      duration = (if i-1 < data_daily.trips.length then data_daily.trips[i+1].Tstart - data_trip.Tstart else 0) 
       d3.select('#route_vis_panel')
         .transition().duration(duration)
           .style('background-color', colorOfDay(data_trip.realTimeStart))
