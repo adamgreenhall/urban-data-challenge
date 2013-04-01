@@ -1,6 +1,6 @@
 (function() {
   var LeafletMap,
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+    _this = this;
 
   LeafletMap = (function() {
     var CITY_CENTER, DEFAULT_ROUTES;
@@ -18,12 +18,21 @@
     };
 
     function LeafletMap(mapContainerId, city) {
+      var _this = this;
       this.mapContainerId = mapContainerId;
       this.city = city;
-      this._routeClick = __bind(this._routeClick, this);
-      this.dateChange = __bind(this.dateChange, this);
-      this.newRouteVis = __bind(this.newRouteVis, this);
-      this.cancelOtherVis = __bind(this.cancelOtherVis, this);
+      this._routeClick = function(elem, d) {
+        return LeafletMap.prototype._routeClick.apply(_this, arguments);
+      };
+      this.dateChange = function() {
+        return LeafletMap.prototype.dateChange.apply(_this, arguments);
+      };
+      this.newRouteVis = function(filename) {
+        return LeafletMap.prototype.newRouteVis.apply(_this, arguments);
+      };
+      this.cancelOtherVis = function() {
+        return LeafletMap.prototype.cancelOtherVis.apply(_this, arguments);
+      };
       this._generateMap();
       this._generateSvg();
       this._generateMapData();
@@ -34,7 +43,6 @@
 
     LeafletMap.prototype.projection = function(x) {
       var point;
-
       point = this._map.latLngToLayerPoint(new L.LatLng(x[1], x[0]));
       return [point.x, point.y];
     };
@@ -50,7 +58,6 @@
     LeafletMap.prototype.redraw = function() {
       var bottomLeft, topRight,
         _this = this;
-
       if (this._bounds === undefined) {
         return;
       }
@@ -97,7 +104,6 @@
 
     LeafletMap.prototype._generateSvg = function() {
       var __this;
-
       __this = this;
       this._svgMap = d3.select(this._map.getPanes().overlayPane).append("svg");
       this.g = this._svgMap.append("g").attr("class", "leaflet-zoom-hide");
@@ -125,7 +131,6 @@
 
     LeafletMap.prototype._busStopMouseover = function(elem, d) {
       var dot, xPosition, yPosition;
-
       dot = d3.select(elem);
       dot.attr("r", 10).classed("hover", true);
       xPosition = parseFloat(dot.attr("cx"));
@@ -146,21 +151,18 @@
 
     LeafletMap.prototype._routeMouseover = function(elem, d) {
       var route;
-
       route = d3.select(elem);
       return route.classed("highlighted", true);
     };
 
     LeafletMap.prototype._routeMouseout = function(elem, d) {
       var route;
-
       route = d3.select(elem);
       return route.classed("highlighted", false);
     };
 
     LeafletMap.prototype.cancelOtherVis = function() {
       var req, timerId, _i, _j, _len, _len1, _ref, _ref1;
-
       _ref = this._remoteRequests;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         req = _ref[_i];
@@ -179,7 +181,6 @@
 
     LeafletMap.prototype.newRouteVis = function(filename) {
       var call_ts_vis, self;
-
       self = this;
       console.log('loading', filename);
       call_ts_vis = function(error, data) {
@@ -190,7 +191,6 @@
 
     LeafletMap.prototype.dateChange = function() {
       var date, filename, __this;
-
       __this = this;
       this.cancelOtherVis();
       date = $('select#weekday option:selected').val();
@@ -200,7 +200,6 @@
 
     LeafletMap.prototype._routeClick = function(elem, d) {
       var date, filename, id_route, route, __this;
-
       __this = this;
       route = d3.select(elem);
       id_route = d.properties.id_route;
@@ -214,10 +213,8 @@
 
     LeafletMap.prototype._loadData = function() {
       var _this = this;
-
       return d3.json("/data/" + this.city + "/stops.json", function(stops) {
         var __this;
-
         __this = _this;
         _this._stopCoordinates = topojson.object(stops, {
           type: "MultiPoint",
@@ -256,7 +253,6 @@
         _this.redraw();
         d3.json("/data/" + _this.city + "/routes.json", function(routes) {
           var defaultRoute;
-
           _this._busRoutes = _this.g.selectAll("path.bus-route").data(topojson.object(routes, routes.objects.routes).geometries).enter().append("path").attr({
             "class": function(d) {
               return "bus-route bus-route-" + d.properties.id_route;

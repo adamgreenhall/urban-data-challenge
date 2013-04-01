@@ -73,6 +73,82 @@
           <a href='zurich.html'>Zurich</a>
         </li>
       </ul>
+      <p>
+        By
+        <a href='http://adamgreenhall.com'>Adam Greenhall</a>
+        ,
+        <a href='http://ameliagreenhall.com'>Amelia Greenhall</a>
+        , &
+        <a href='http://jaredonline.github.com/about/'>Jared McFarland.</a>
+      </p>
+      <a data-toggle='modal' href='#myModal' role='button'>
+        About.
+      </a>
+    </div>
+    <!-- Modal -->
+    <div aria-hidden='true' aria-labelledby='myModalLabel' class='modal hide fade' id='myModal' role='dialog' tabindex='-1'>
+      <div class='modal-header'>
+        <button aria-hidden='true' class='close' data-dismiss='modal' type='button'>x</button>
+        <h3 id='myModalLabel'>What's it like to ride on that bus?</h3>
+      </div>
+      <div class='modal-body'>
+        <p>Sometimes bus riding can feel intimidating, but this visualization proves it: everybody's doing it. Pick a route off the map and watch a day in the life of the line. Buses speed by, passengers jumping on and off. Some lines are slow, some are hopping, and rush hour is often hilarious.</p>
+        <h4>Where's the data from?</h4>
+        <p>
+          The Bay Area
+          <a href='http://www.meetup.com/Bay-Area-d3-User-Group/'>d3.js user group</a>
+          put out a call for entries for the Urban Prototyping's
+          <a href='http://urbanprototyping.org/prototype/challenges/urban-data-challenge-zurich-sf-geneva/'>Urban Data Challenge.</a>
+          Three cities - Zurich, San Francisco, and Geneva - provided
+          <a href='https://github.com/swissnexSF/Urban-Data-Challenge'>public transportation data</a>
+          from the first week of October 1-7, 2012. The data provided: each bus, when it arrived at each stop, and how many people got on and off (as counted by lasers), along with the lat/long of each stop and route. The challenge: merge and compare the datasets to show something new and interesting.
+        </p>
+        <h4>We found:</h4>
+        <p>
+          Swiss cities kick San Francisco's butt at public transit ridership.
+        </p>
+        <h4>Geeky details</h4>
+        <h6>Cleaning up the data</h6>
+        <p>
+          The raw data needed a lot of processing before we could make our pencil and paper sketch real. Mostly this involved wrangling the three cities into a standard format (so all the column names were the same across the cities), then organizing that into JSON blobs by date and route.
+          Thanks to our favorite tools:
+          <a href='http://ipython.org/notebook.html'>IPython Notebook</a>
+          and
+          <a href='http://pandas.pydata.org/'>Pandas</a>
+          this was less painful than it sounds.
+        </p>
+        <h6>Visualizing the data</h6>
+        <p>
+          From there,
+          <a href='http://d3js.org/'>d3.js</a>
+          takes over. That simulation you're watching? The time is scaled to real time - there is a constant speed up factor. We kick off a bunch of d3 timers - one for every trip a bus takes along the line. Then, within each trip, more timers get kicked off to add the waiting passengers to each stop and to move the bus so it arrives at each stop at the proper time. The waiting passengers arrive at a random time between when the bus is a few stops away and when it arrives. The passengers who get off at that stop exit the bus and disperse.
+        </p>
+        <p>
+          Clicking a new route on the map loads that route, and the day pulldown switches days, just as you'd expect. And a few things we couldn't resist: The skyline changes color in an ambient display of the time of day, and we drew the little bus in inbound/outbound modes, and also made it turn headlights on at night. Finally, hovering over the stop on the route visualization panel shows the street names of the stop, and highlights the stop location on the map.
+        </p>
+        <h6>Many other awesome things we used.</h6>
+        <p>
+          Thanks are in order: The map is the beautiful
+          <a href='http://polymaps.org/ex/pale-dawn.html#12.00/37.7649/-122.4195'>Pale Dawn</a>
+          map tiles, via
+          <a href='http://cloudmade.com/'>CloudMade.</a>
+          The d3.js layer over the leaflet tiles uses this
+          <a href='http://bost.ocks.org/mike/leaflet/'>method,</a>
+          and we used
+          <a href='https://github.com/mbostock/topojson'>TopoJSON</a>
+          to render the routes and the stops. (Thanks
+          <a href='https://github.com/swissnexSF/Urban-Data-Challenge/commit/2fe77e36374afd33fbb618d630c5c77d9e2aae8c'>herrstucki</a>
+          for converting for the routes to TopoJSON.) Also thanks to: Heroku, github, and the rest of the open source world.
+        </p>
+        <h6>We'd love to know what you thought!</h6>
+        <p>
+          Say hi on twitter:
+          <a href='https://twitter.com/ameliagreenhall'>@ameliagreenhall</a>
+          <a href='https://twitter.com/adamgreenhall'>@adamgreenhall</a>
+          and
+          <a href='https://twitter.com/jaredmcfarland'>@jaredmcfarland</a>
+        </p>
+      </div>
     </div>
     <script>
       city_name = "san-francisco"
