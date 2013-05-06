@@ -1,3 +1,6 @@
+@media (max-wdith: 700px) {
+  body {
+    padding: 0 !important; } }
 html, body {
   margin: 0;
   height: 100%; }
