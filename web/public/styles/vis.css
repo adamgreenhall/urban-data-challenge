@@ -38,17 +38,17 @@ h1, h2, h3, h4, h5, h6 {
   z-index: 1000;
   font-family: Coustard, serif; }
   #route_vis_panel h3 {
-    font-size: 36px !important;
+    font-size: 28px !important;
     line-height: 40px !important;
     padding-left: 100px; }
   #route_vis_panel #time-display .time, #route_vis_panel #time-display .ampm {
-    padding-top: 10px; }
+    padding-top: 4px; }
   #route_vis_panel select#weekday {
     background-color: rgba(255, 255, 255, 0.5);
     width: 7em;
     font-weight: bold;
     font-family: Coustard, serif !important;
-    font-size: 36px !important;
+    font-size: 28px !important;
     height: 1.5em !important; }
 
 circle.bus-stop {
