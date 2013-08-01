@@ -1,0 +1,3 @@
+primary_city,agency,url,download_url
+San Francisco,MUNI,http://www.sfmta.com/about-sfmta/reports/gtfs-transit-data,http://archives.sfmta.com/transitdata/google_transit.zip
+San Francisco,BART,http://www.bart.gov/schedules/developers/gtfs.aspx,http://bart.gov/dev/schedules/google_transit.zip
