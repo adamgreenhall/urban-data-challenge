@@ -2,9 +2,7 @@ import os
 import argparse
 import pandas as pd
 from ujson import dumps as dump_json
-from ipdb import set_trace
-
-from os.path import join as joindir 
+from os.path import join as joindir
 
 def feature_collection(list):
     return dict(type="FeatureCollection", features = list)
