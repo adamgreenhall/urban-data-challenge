@@ -52,7 +52,8 @@ def mod24hrs(s):
 def parse_datetimes(df, date, cols):
     daystr = date.strftime('%Y-%m-%d ')
     for col in cols:
-        roll_over_midnight = df[col].str.findall('^2[4-9]:.+').apply(len) > 0
+        roll_over_midnight = df[col].str.findall('^2[4-9].+').apply(len) > 0
+        # roll_over_midnight = df[col].str.startswith('24') | df[col].str.startswith('25')
         df.ix[roll_over_midnight, col] = \
             df.ix[roll_over_midnight, col].apply(mod24hrs)
         df[col] = pd.to_datetime(daystr + df[col], coerce=True)
@@ -66,7 +67,8 @@ def get_days_trips(route_id, date):
     days_trips = trips[(trips.route_id == route_id) & (trips.service_id == service_id)]
     
     days_times = parse_datetimes(
-        stop_times[stop_times.trip_id.isin(days_trips.trip_id)],
+        pd.merge(days_trips, stop_times, on='trip_id'),
+        #stop_times[stop_times.trip_id.isin(days_trips.trip_id)],
         date, ['arrival_time', 'departure_time'])
 
     if (days_times.arrival_time == days_times.departure_time).all():
@@ -74,3 +76,4 @@ def get_days_trips(route_id, date):
 
     with open('route-{}.json'.format(route_id), 'w+') as f:
         f.write(days_times.to_json(orient='records'))
+    return days_trips
