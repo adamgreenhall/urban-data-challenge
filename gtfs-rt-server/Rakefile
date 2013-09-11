@@ -16,3 +16,7 @@ desc "run the realtime updating script"
 task :update do
   system("python gtfsrdb/gtfsrdb.py -t #{url_update} -d #{db} --create-tables --discard-old --wait 30")
 end
+desc "run the webserver"
+task :run do
+  system("source venv/bin/activate && python app.py")
+end
