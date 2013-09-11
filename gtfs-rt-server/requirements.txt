@@ -1,0 +1,5 @@
+SQLAlchemy==0.8.2
+gtfsdb==0.1.0
+protobuf==2.5.0
+psycopg2==2.5.1
+wsgiref==0.1.2

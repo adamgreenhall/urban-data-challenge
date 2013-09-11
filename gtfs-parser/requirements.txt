@@ -1,2 +1,0 @@
-pandas>=0.12
-ujson
